@@ -2,14 +2,14 @@
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
-    <title>Minecraft Web Parkur</title>
+    <title>Minecraft Web Parkur - Fix</title>
     <style>
         body { margin: 0; overflow: hidden; font-family: 'Courier New', Courier, monospace; }
-        #ui { position: absolute; top: 10px; left: 10px; color: #fff; background: rgba(0,0,0,0.7); padding: 15px; border-radius: 5px; border: 2px solid #555; pointer-events: none; }
+        #ui { position: absolute; top: 10px; left: 10px; color: #fff; background: rgba(0,0,0,0.85); padding: 15px; border-radius: 5px; border: 2px solid #555; pointer-events: none; }
         h3 { margin: 0 0 10px 0; color: #55ff55; }
         p { margin: 5px 0; font-size: 14px; }
     </style>
-    <script src="https://unpkg.com/three@0.128.0/build/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
 <body>
 
@@ -20,13 +20,13 @@
         <p><b>DEPAR:</b> SHIFT</p>
         <p><b>DANS ET:</b> G Tuşu</p>
         <hr style="border-color: #444;">
-        <p id="checkpoint-text" style="color: #ff5555; font-weight: bold;">Durum: Başlangıç Noktası</p>
+        <p id="checkpoint-text" style="color: #55ff55; font-weight: bold;">Durum: Oyuna Hazır!</p>
     </div>
 
     <script>
         // --- 1. SAHNE VE KAMERA ---
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x87CEEB); // Minecraft gökyüzü mavisi
+        scene.background = new THREE.Color(0x87CEEB); 
 
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
         const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -34,15 +34,15 @@
         document.body.appendChild(renderer.domElement);
 
         // Işıklar
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
         scene.add(ambientLight);
-        const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        const dirLight = new THREE.DirectionalLight(0xffffff, 0.6);
         dirLight.position.set(10, 20, 15);
         scene.add(dirLight);
 
         // --- 2. BLOK OLUŞTURMA SİSTEMİ ---
         const blocks = [];
-        const checkpoints = [{ x: 0, y: 3, z: -22 }]; // Checkpoint koordinatı
+        const checkpoints = [{ x: 0, y: 0.5, z: -22 }]; 
 
         function createBlock(x, y, z, w, h, d, hexColor) {
             const geometry = new THREE.BoxGeometry(w, h, d);
@@ -51,55 +51,58 @@
             mesh.position.set(x, y, z);
             scene.add(mesh);
             
-            // Çarpışma için listeye ekle
-            blocks.push({ mesh: mesh, width: w, height: h, depth: d, color: hexColor });
+            // Çarpışma sınırlarını önceden hesaplayıp kaydediyoruz
+            blocks.push({
+                mesh: mesh,
+                minX: x - w/2, maxX: x + w/2,
+                minY: y + h/2, // Bloğun üst yüzeyinin Y koordinatı
+                minZ: z - d/2, maxZ: z + d/2,
+                color: hexColor
+            });
             return mesh;
         }
 
-        // Renk Tanımlamaları (Minecraft temalı flat renkler)
         const YEŞİL = 0x55ff55;
         const GRİ = 0x888888;
-        const TURUNCU = 0xffaa00; // Checkpoint rengi
+        const TURUNCU = 0xffaa00; 
         const LAV = 0xff3300;
 
-        // Haritayı İnşa Ediyoruz
-        createBlock(0, 0, 0, 5, 1, 5, YEŞİL);     // Başlangıç Platformu
-        createBlock(0, 1, -7, 2, 1, 2, GRİ);      // 1. Zıplama Noktası
-        createBlock(3, 2, -13, 2, 1, 2, GRİ);     // 2. Zıplama Noktası
-        
-        // CHECKPOINT BLOĞU (Turuncu)
-        createBlock(0, 2.5, -22, 4, 1, 4, TURUNCU); 
+        // Harita Blokları (Yükseklikleri artırdım ki basması kolay olsun)
+        createBlock(0, -1, 0, 6, 2, 6, YEŞİL);       // Başlangıç Platformu
+        createBlock(0, 0, -8, 2, 2, 2, GRİ);        // 1. Zıplama Noktası
+        createBlock(3, 1, -15, 2, 2, 2, GRİ);       // 2. Zıplama Noktası
+        createBlock(0, 2, -22, 4, 2, 4, TURUNCU);    // CHECKPOINT BLOĞU
+        createBlock(-4, 3, -30, 2, 2, 2, GRİ);      // Zorlu Blok
+        createBlock(0, 4, -37, 4, 2, 4, YEŞİL);      // Bitiş Platformu
 
-        createBlock(-4, 4, -29, 2, 1, 2, GRİ);    // Zorlu sonraki blok
-        createBlock(0, 5, -35, 3, 1, 3, YEŞİL);    // Bitiş Platformu
-
-        // Düşünce yanacağımız ölümcül lav denizi
-        createBlock(0, -15, -15, 100, 1, 100, LAV);
+        // Lav Denizi (Çok daha aşağıda)
+        createBlock(0, -20, -15, 300, 1, 300, LAV);
 
         // --- 3. OYUNCU KARAKTERİ ---
         const playerGroup = new THREE.Group();
         
-        // Gövde (Mavi tişörtlü küp)
+        // Gövde
         const bodyGeo = new THREE.BoxGeometry(1, 1.4, 0.6);
         const bodyMat = new THREE.MeshLambertMaterial({ color: 0x00aaff });
         const body = new THREE.Mesh(bodyGeo, bodyMat);
         body.position.y = 0.7;
         playerGroup.add(body);
 
-        // Kafa (Ten rengi küp)
+        // Kafa
         const headGeo = new THREE.BoxGeometry(0.6, 0.6, 0.6);
         const headMat = new THREE.MeshLambertMaterial({ color: 0xffcc99 });
         const head = new THREE.Mesh(headGeo, headMat);
         head.position.y = 1.7;
         playerGroup.add(head);
 
-        playerGroup.position.set(0, 2, 0); // Başlangıç konumu
+        // DOĞMA NOKTASI: Tam olarak ilk bloğun üstü (Y = 0)
+        playerGroup.position.set(0, 0, 0); 
         scene.add(playerGroup);
 
         // --- 4. KONTROLLER ---
         const keys = {};
         let velocityY = 0; 
-        let isGrounded = false;
+        let isGrounded = true;
         let isDancing = false;
         let danceTimer = 0;
         let hasCheckpoint = false;
@@ -114,12 +117,11 @@
             requestAnimationFrame(animate);
             const delta = clock.getDelta();
 
-            // Depar kontrolü (Shift ile hızlanır)
-            let speed = keys['ShiftLeft'] ? 0.16 : 0.09; 
+            // Karakter hızları
+            let speed = keys['ShiftLeft'] ? 0.14 : 0.08; 
             let moveX = 0;
             let moveZ = 0;
 
-            // Herhangi bir tuşa basılırsa dansı kes
             if (keys['KeyW'] || keys['KeyS'] || keys['KeyA'] || keys['KeyD'] || keys['Space']) {
                 isDancing = false;
                 body.position.y = 0.7;
@@ -135,77 +137,78 @@
                 playerGroup.position.x += moveX;
                 playerGroup.position.z += moveZ;
 
-                // Karakterin bastığı yöne dönmesi
                 if (moveX !== 0 || moveZ !== 0) {
                     playerGroup.rotation.y = Math.atan2(-moveX, -moveZ);
                 }
             } else {
-                // G Çılgın Dans Animasyonu
                 danceTimer += delta * 15;
                 body.position.y = 0.7 + Math.sin(danceTimer) * 0.15;
                 head.position.x = Math.cos(danceTimer) * 0.2;
             }
 
-            // G Tuşuna basınca dans et
             if (keys['KeyG'] && isGrounded) {
                 isDancing = true;
             }
 
-            // Fizik ve Yerçekimi uyguluyoruz
-            velocityY -= 0.01; 
+            // Yerçekimi İvmesi (Daha yumuşak)
+            velocityY -= 0.008; 
             playerGroup.position.y += velocityY;
-            isGrounded = false;
-
-            // Çarpışma Testi (Blokların üstünde durma)
+            
+            let hitAnyBlock = false;
             const px = playerGroup.position.x;
             const py = playerGroup.position.y;
             const pz = playerGroup.position.z;
 
+            // GELİŞTİRİLMİŞ KESİN ÇARPIŞMA TESTİ
             for (let block of blocks) {
-                if (px > block.mesh.position.x - block.width/2 - 0.4 &&
-                    px < block.mesh.position.x + block.width/2 + 0.4 &&
-                    pz > block.mesh.position.z - block.depth/2 - 0.4 &&
-                    pz < block.mesh.position.z + block.depth/2 + 0.4) {
+                if (px >= block.minX - 0.4 && px <= block.maxX + 0.4 &&
+                    pz >= block.minZ - 0.4 && pz <= block.maxZ + 0.4) {
                     
-                    if (py >= block.mesh.position.y + block.height/2 && py + velocityY <= block.mesh.position.y + block.height/2 + 0.4) {
-                        playerGroup.position.y = block.mesh.position.y + block.height/2;
+                    // Oyuncu bloğun üst yüzeyine yakınsa veya altına düşmek üzereyse yakala
+                    if (py <= block.minY && py >= block.minY - 0.5) {
+                        playerGroup.position.y = block.minY;
                         velocityY = 0;
                         isGrounded = true;
+                        hitAnyBlock = true;
 
-                        // Eğer turuncu bloğa bastıysa Checkpoint kaydet
                         if (block.color === TURUNCU) {
                             hasCheckpoint = true;
                             document.getElementById('checkpoint-text').innerText = "Durum: Checkpoint Kaydedildi!";
                             document.getElementById('checkpoint-text').style.color = "#ffaa00";
                         }
+                        break;
                     }
                 }
             }
 
-            // Zıplama (Boşluk Tuşu)
-            if (keys['Space'] && isGrounded && !isDancing) {
-                velocityY = 0.22; 
+            if (!hitAnyBlock) {
                 isGrounded = false;
             }
 
-            // Lav'a veya Boşluğa Düşünce Yeniden Doğma
-            if (playerGroup.position.y < -4) {
+            // Zıplama
+            if (keys['Space'] && isGrounded && !isDancing) {
+                velocityY = 0.18; 
+                isGrounded = false;
+            }
+
+            // Lava düşme kontrolü
+            if (playerGroup.position.y < -10) {
                 if (hasCheckpoint) {
                     playerGroup.position.set(checkpoints[0].x, checkpoints[0].y, checkpoints[0].z);
                 } else {
-                    playerGroup.position.set(0, 2, 0);
+                    playerGroup.position.set(0, 0, 0);
                 }
                 velocityY = 0;
+                isGrounded = true;
             }
 
-            // --- 6. ARKADAN GÖRÜNÜM (3. Şahıs Kamera) ---
-            camera.position.set(playerGroup.position.x, playerGroup.position.y + 3, playerGroup.position.z + 7);
+            // Kamera Takibi
+            camera.position.set(playerGroup.position.x, playerGroup.position.y + 3, playerGroup.position.z + 6);
             camera.lookAt(playerGroup.position.x, playerGroup.position.y + 1, playerGroup.position.z);
 
             renderer.render(scene, camera);
         }
 
-        // Ekran Boyutlandırma
         window.addEventListener('resize', () => {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
