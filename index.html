@@ -2,7 +2,7 @@
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
-    <title>Minecraft & Roblox Web Parkur</title>
+    <title>Minecraft & Roblox Web Parkur - Fix V2</title>
     <style>
         body { margin: 0; overflow: hidden; font-family: 'Courier New', Courier, monospace; user-select: none; }
         #ui { position: absolute; top: 10px; left: 10px; color: #fff; background: rgba(0,0,0,0.85); padding: 15px; border-radius: 5px; border: 2px solid #555; pointer-events: none; }
@@ -26,22 +26,20 @@
     <script>
         // --- 1. SAHNE VE KAMERA ---
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x7ec0ee); // Gökyüzü
+        scene.background = new THREE.Color(0x7ec0ee); 
 
         const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         document.body.appendChild(renderer.domElement);
 
-        // Işıklar
         const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
         scene.add(ambientLight);
         const dirLight = new THREE.DirectionalLight(0xffffff, 0.6);
         dirLight.position.set(20, 40, 20);
         scene.add(dirLight);
 
-        // --- 2. DİNAMİK PIXELLI TEXTURE PACK GENERATOR ---
-        // İnternetten resim yüklemek yerine kodla Minecraft tarzı pikselli dokular üretiyoruz
+        // --- 2. TEXTURE PACK GENERATOR ---
         function createPixelTexture(baseColor, noiseColor, size = 16) {
             const canvas = document.createElement('canvas');
             canvas.width = size;
@@ -51,7 +49,6 @@
             ctx.fillStyle = baseColor;
             ctx.fillRect(0, 0, size, size);
             
-            // Rastgele pikseller ekleyerek Minecraft dokusu havası veriyoruz
             for (let x = 0; x < size; x++) {
                 for (let y = 0; y < size; y++) {
                     if (Math.random() > 0.6) {
@@ -61,81 +58,79 @@
                 }
             }
             
-            // Blok kenarlarına gölge çizgisi
             ctx.strokeStyle = 'rgba(0,0,0,0.15)';
             ctx.strokeRect(0, 0, size, size);
 
             const texture = new THREE.CanvasTexture(canvas);
-            texture.magFilter = THREE.NearestFilter; // Piksellerin bulanıklaşmasını önler (Retro durur)
+            texture.magFilter = THREE.NearestFilter; 
             texture.minFilter = THREE.NearestFilter;
             return texture;
         }
 
-        // Dokuları Oluşturma
-        const grassTex = createPixelTexture('#5cc43c', '#4da332'); // Çimen
-        const stoneTex = createPixelTexture('#737373', '#5a5a5a'); // Taş
-        const cpTex = createPixelTexture('#ff9900', '#cc7a00');    // Checkpoint
-        const lavaTex = createPixelTexture('#ff3300', '#ff6600');  // Lav
-        const skinTex = createPixelTexture('#ffdbb5', '#e0bfa2');  // Ten
+        const grassTex = createPixelTexture('#5cc43c', '#4da332'); 
+        const stoneTex = createPixelTexture('#737373', '#5a5a5a'); 
+        const cpTex = createPixelTexture('#ff9900', '#cc7a00');    
+        const lavaTex = createPixelTexture('#ff3300', '#ff6600');  
+        const skinTex = createPixelTexture('#ffdbb5', '#e0bfa2');  
 
         // --- 3. HARİTA İNŞASI ---
         const blocks = [];
-        const checkpoints = [{ x: 0, y: 0.5, z: -22 }];
+        const checkpoints = [{ x: 0, y: 1, z: -22 }]; // Checkpoint üstünde doğma yüksekliği ayarlandı
 
-        function createBlock(x, y, z, w, h, d, texture, isLava = false) {
+        function createBlock(x, y, z, w, h, d, texture) {
             const geometry = new THREE.BoxGeometry(w, h, d);
             const material = new THREE.MeshLambertMaterial({ map: texture });
             const mesh = new THREE.Mesh(geometry, material);
             mesh.position.set(x, y, z);
             scene.add(mesh);
             
+            // KESİN ÇARPIŞMA İÇİN SINIRLAR (Tam bloğun en üst yüzeyi)
             blocks.push({
-                mesh: mesh, minX: x - w/2, maxX: x + w/2,
-                minY: y + h/2, minZ: z - d/2, maxZ: z + d/2,
-                texture: texture, isLava: isLava
+                mesh: mesh, 
+                minX: x - w/2, maxX: x + w/2,
+                topY: y + h/2, // Bloğun tam olarak en üst çizgisi
+                minZ: z - d/2, maxZ: z + d/2,
+                texture: texture
             });
             return mesh;
         }
 
-        // Dünyayı Kuruyoruz
-        createBlock(0, -1, 0, 6, 2, 6, grassTex);       // Başlangıç
-        createBlock(0, 0, -8, 2, 2, 2, stoneTex);       // 1. Taş Blok
-        createBlock(3, 1, -15, 2, 2, 2, stoneTex);      // 2. Taş Blok
-        createBlock(0, 2, -22, 4, 2, 4, cpTex);         // CHECKPOINT
-        createBlock(-4, 3, -30, 2, 2, 2, stoneTex);     // Zorlu Blok
-        createBlock(0, 4, -37, 4, 2, 4, grassTex);     // Bitiş Platformu
+        // Harita Düzeni (Genişlik, Yükseklik, Derinlik)
+        createBlock(0, -1, 0, 6, 2, 6, grassTex);       // Başlangıç (Üst yüzey Y = 0)
+        createBlock(0, 0, -8, 2, 2, 2, stoneTex);       // 1. Taş Blok (Üst yüzey Y = 1)
+        createBlock(3, 1, -15, 2, 2, 2, stoneTex);      // 2. Taş Blok (Üst yüzey Y = 2)
+        createBlock(0, 2, -22, 4, 2, 4, cpTex);         // CHECKPOINT (Üst yüzey Y = 3)
+        createBlock(-4, 3, -30, 2, 2, 2, stoneTex);     // Zorlu Blok (Üst yüzey Y = 4)
+        createBlock(0, 4, -37, 4, 2, 4, grassTex);      // Bitiş Platformu (Üst yüzey Y = 5)
 
-        // Dev Lav Denizi
-        createBlock(0, -20, -15, 400, 1, 400, lavaTex, true);
+        // Ölümcül Lav Denizi
+        createBlock(0, -20, -15, 400, 1, 400, lavaTex);
 
-        // --- 4. OYUNCU KARAKTERİ (Gelişmiş Doku ve Yüz) ---
+        // --- 4. OYUNCU KARAKTERİ ---
         const playerGroup = new THREE.Group();
         
-        // Gövde (Mavi Tişörtlü)
         const bodyGeo = new THREE.BoxGeometry(1, 1.4, 0.6);
         const bodyMat = new THREE.MeshLambertMaterial({ map: createPixelTexture('#00aaff', '#0088cc') });
         const body = new THREE.Mesh(bodyGeo, bodyMat);
         body.position.y = 0.7;
         playerGroup.add(body);
 
-        // Kafa (Yüz Detaylı)
         const headGeo = new THREE.BoxGeometry(0.6, 0.6, 0.6);
         const headMaterials = [
-            new THREE.MeshLambertMaterial({ map: skinTex }), // sağ
-            new THREE.MeshLambertMaterial({ map: skinTex }), // sol
-            new THREE.MeshLambertMaterial({ map: skinTex }), // üst
-            new THREE.MeshLambertMaterial({ map: skinTex }), // alt
-            // ÖN YÜZ (Gözler ve Ağız için özel piksel çizmeli)
+            new THREE.MeshLambertMaterial({ map: skinTex }), 
+            new THREE.MeshLambertMaterial({ map: skinTex }), 
+            new THREE.MeshLambertMaterial({ map: skinTex }), 
+            new THREE.MeshLambertMaterial({ map: skinTex }), 
             new THREE.MeshLambertMaterial({ map: (function(){
                 const canvas = document.createElement('canvas'); canvas.width = 16; canvas.height = 16;
                 const ctx = canvas.getContext('2d');
-                ctx.fillStyle = '#ffdbb5'; ctx.fillRect(0,0,16,16); // ten rengi
-                ctx.fillStyle = '#fff'; ctx.fillRect(2,5,3,2); ctx.fillRect(11,5,3,2); // göz beyazı
-                ctx.fillStyle = '#422', ctx.fillRect(3,5,2,2); ctx.fillRect(11,5,2,2); // göz bebeği
-                ctx.fillStyle = '#aa4444'; ctx.fillRect(5,10,6,2); // ağız
+                ctx.fillStyle = '#ffdbb5'; ctx.fillRect(0,0,16,16); 
+                ctx.fillStyle = '#fff'; ctx.fillRect(2,5,3,2); ctx.fillRect(11,5,3,2); 
+                ctx.fillStyle = '#422', ctx.fillRect(3,5,2,2); ctx.fillRect(11,5,2,2); 
+                ctx.fillStyle = '#aa4444'; ctx.fillRect(5,10,6,2); 
                 const tex = new THREE.CanvasTexture(canvas); tex.magFilter = THREE.NearestFilter; return tex;
             })() }),
-            new THREE.MeshLambertMaterial({ map: skinTex })  // arka
+            new THREE.MeshLambertMaterial({ map: skinTex })  
         ];
         const head = new THREE.Mesh(headGeo, headMaterials);
         head.position.y = 1.7;
@@ -144,7 +139,7 @@
         playerGroup.position.set(0, 0, 0); 
         scene.add(playerGroup);
 
-        // --- 5. ROBLOX TARZI KAMERA VE KONTROL SİSTEMİ ---
+        // --- 5. ROBLOX TARZI KAMERA SİSTEMİ ---
         const keys = {};
         let velocityY = 0; 
         let isGrounded = true;
@@ -152,33 +147,30 @@
         let danceTimer = 0;
         let hasCheckpoint = false;
 
-        // Kamera Açıları (Roblox mantığı)
-        let camRotationX = 0; // Yukarı-Aşağı bakış
-        let camRotationY = 0; // Sağ-Sol döngüsü
+        let camRotationX = 0.2; 
+        let camRotationY = 0; 
         let isRightMouseDown = false;
-        let camDistance = 7;   // Karakterden uzaklık
+        let camDistance = 7;   
 
         window.addEventListener('keydown', (e) => { keys[e.code] = true; });
         window.addEventListener('keyup', (e) => { keys[e.code] = false; });
 
-        // Sağ tık menüsünü engelle (Roblox'taki gibi rahat dönsün diye)
         window.addEventListener('contextmenu', e => e.preventDefault());
 
         window.addEventListener('mousedown', (e) => {
-            if (e.button === 2) isRightMouseDown = true; // Sağ tık basıldı
+            if (e.button === 2) isRightMouseDown = true; 
         });
 
         window.addEventListener('mouseup', (e) => {
-            if (e.button === 2) isRightMouseDown = false; // Sağ tık bırakıldı
+            if (e.button === 2) isRightMouseDown = false; 
         });
 
         window.addEventListener('mousemove', (e) => {
             if (isRightMouseDown) {
-                // Fare hareketine göre kamera açılarını değiştir
                 camRotationY -= e.movementX * 0.005;
-                camRotationX -= e.movementY * 0.005;
+                // MOUSE TERSLİĞİ BURADA DÜZELTİLDİ (+ yerine - yapıldı)
+                camRotationX += e.movementY * 0.005; 
                 
-                // Yukarı aşağı bakış sınırları (Kamera takla atmasın)
                 camRotationX = Math.max(-Math.PI/3, Math.min(Math.PI/4, camRotationX));
             }
         });
@@ -190,7 +182,7 @@
             requestAnimationFrame(animate);
             const delta = clock.getDelta();
 
-            let speed = keys['ShiftLeft'] ? 0.15 : 0.08; 
+            let speed = keys['ShiftLeft'] ? 0.14 : 0.08; 
             let moveX = 0;
             let moveZ = 0;
 
@@ -201,7 +193,6 @@
             }
 
             if (!isDancing) {
-                // Kameranın baktığı açıya göre hareket yönünü hesapla
                 const forward = new THREE.Vector3(0, 0, -1).applyAxisAngle(new THREE.Vector3(0, 1, 0), camRotationY);
                 const right = new THREE.Vector3(1, 0, 0).applyAxisAngle(new THREE.Vector3(0, 1, 0), camRotationY);
 
@@ -213,7 +204,6 @@
                 playerGroup.position.x += moveX;
                 playerGroup.position.z += moveZ;
 
-                // Karakter hareket ediyorsa bastığı yöne baksın
                 if (moveX !== 0 || moveZ !== 0) {
                     playerGroup.rotation.y = Math.atan2(moveX, moveZ);
                 }
@@ -225,7 +215,7 @@
 
             if (keys['KeyG'] && isGrounded) isDancing = true;
 
-            // Fizik ve Yerçekimi
+            // Yerçekimi uyguluyoruz
             velocityY -= 0.008; 
             playerGroup.position.y += velocityY;
             
@@ -234,12 +224,15 @@
             const py = playerGroup.position.y;
             const pz = playerGroup.position.z;
 
+            // YENİLENEN ÇARPIŞMA ALGILAMA SİSTEMİ
             for (let block of blocks) {
+                // Oyuncu bloğun sınırları içinde mi?
                 if (px >= block.minX - 0.4 && px <= block.maxX + 0.4 &&
                     pz >= block.minZ - 0.4 && pz <= block.maxZ + 0.4) {
                     
-                    if (py <= block.minY && py >= block.minY - 0.5) {
-                        playerGroup.position.y = block.minY;
+                    // Düşerken bloğun tam üst yüzeyine çarptıysa yakala
+                    if (py <= block.topY && py >= block.topY - 0.4 && velocityY <= 0) {
+                        playerGroup.position.y = block.topY;
                         velocityY = 0;
                         isGrounded = true;
                         hitAnyBlock = true;
@@ -256,12 +249,13 @@
 
             if (!hitAnyBlock) isGrounded = false;
 
+            // Zıplama
             if (keys['Space'] && isGrounded && !isDancing) {
-                velocityY = 0.18; 
+                velocityY = 0.17; 
                 isGrounded = false;
             }
 
-            // Düştüğünde Yeniden Doğma
+            // Lav'a Düşme Kontrolü
             if (playerGroup.position.y < -10) {
                 if (hasCheckpoint) {
                     playerGroup.position.set(checkpoints[0].x, checkpoints[0].y, checkpoints[0].z);
@@ -272,8 +266,7 @@
                 isGrounded = true;
             }
 
-            // --- ROBLOX TARZI KAMERA HESAPLAMASI ---
-            // Kamerayı karakterin etrafında küresel (spherical) olarak döndürüyoruz
+            // Kamera Konumu Hesaplama
             const targetX = playerGroup.position.x - Math.sin(camRotationY) * Math.cos(camRotationX) * camDistance;
             const targetY = playerGroup.position.y + 2.5 + Math.sin(camRotationX) * camDistance;
             const targetZ = playerGroup.position.z - Math.cos(camRotationY) * Math.cos(camRotationX) * camDistance;
