@@ -14,8 +14,7 @@
         
         #crosshair { position: absolute; top: 50%; left: 50%; width: 10px; height: 10px; background: rgba(255,255,255,0.4); border-radius: 50%; transform: translate(-50%, -50%); pointer-events: none; }
 
-        /* MOBİL MOBİL BUTONLARI (Z-INDEX VE POINTER-EVENTS DÜZELTİLDİ) */
-        #mobile-coop-btn { position: absolute; bottom: 180px; left: 40px; width: 120px; height: 40px; background: #2980b9; color: white; border: 2px solid #fff; border-radius: 5px; text-align: center; line-height: 40px; font-weight: bold; font-size: 14px; display: none; z-index: 20; cursor: pointer; }
+        /* MOBİL KONTROLLER */
         #joystick-zone { position: absolute; bottom: 40px; left: 40px; width: 120px; height: 120px; background: rgba(255,255,255,0.15); border: 3px solid rgba(255,255,255,0.5); border-radius: 50%; display: none; touch-action: none; z-index: 20; }
         #joystick-stick { position: absolute; top: 35px; left: 35px; width: 50px; height: 50px; background: rgba(255,255,255,0.7); border-radius: 50%; pointer-events: none; }
         #jump-btn { position: absolute; bottom: 50px; right: 40px; width: 90px; height: 90px; background: rgba(255,255,255,0.25); border: 3px solid rgba(255,255,255,0.6); border-radius: 50%; display: none; color: white; font-weight: bold; text-align: center; line-height: 90px; font-size: 18px; touch-action: none; z-index: 20; }
@@ -28,7 +27,7 @@
 
     <div id="ui">
         <h3>HAMYAZPARKOUR v12</h3>
-        <p style="color: #ffcc00; font-weight: bold;">-> PC: 2 TUŞU | MOBİL: BUTONLA 2 KİŞİLİK YAP <-</p>
+        <p style="color: #ffcc00; font-weight: bold;">-> PC: 2 TUŞU İLE 2 KİŞİLİK YAP <-</p>
         <p><b>P1:</b> W,A,S,D / Mobil Joystick</p>
         <p><b>P2:</b> Yön Okları | Num0 veya Sağ Shift</p>
         <p><b>HİLE:</b> H + M + Z ile UÇ!</p>
@@ -45,21 +44,20 @@
         <p style="color:#bb44ff;">MAHMUT 3 (BOT): <span id="bot2-val" class="stat-val" style="color:#bb44ff;">0</span></p>
     </div>
 
-    <button id="mobile-coop-btn">2 KİŞİLİK MOD</button>
     <div id="joystick-zone"><div id="joystick-stick"></div></div>
     <div id="jump-btn">ZIPLA</div>
 
     <script>
-        // Mobil Kontrol tespiti
+        // Mobil Kontrol tespiti ve Arayüz Temizliği
         const isMobile = ('ontouchstart' in window || navigator.maxTouchPoints > 0);
         if (isMobile) {
             document.getElementById('joystick-zone').style.display = 'block';
             document.getElementById('jump-btn').style.display = 'block';
-            document.getElementById('mobile-coop-btn').style.display = 'block';
             document.getElementById('crosshair').style.display = 'none';
+            document.getElementById('ui').style.display = 'none'; // SOL ÜSTTEKİ P1-P2 BİLGİ KUTUSU MOBİLDE GİZLENDİ
         }
 
-        // --- PC İÇİN POINTER LOCK (SADECE PC'DE ÇALIŞACAK ŞEKİLDE KORUNDU) ---
+        // --- PC İÇİN POINTER LOCK ---
         if(!isMobile) {
             document.body.addEventListener('click', () => {
                 document.body.requestPointerLock();
@@ -219,8 +217,8 @@
 
         let coOpModeActive = false; 
 
-        // --- 2 KİŞİLİK MOD AÇMA/KAPAMA FONKSİYONU ---
         function toggleCoOp() {
+            if(isMobile) return; // MOBİLDE 2 KİŞİLİK MOD TAMAMEN DEVRE DIŞI
             coOpModeActive = !coOpModeActive;
             if(coOpModeActive) {
                 p2.mesh.position.set(p1.mesh.position.x + 1.5, p1.mesh.position.y, p1.mesh.position.z);
@@ -246,7 +244,6 @@
 
         let camRotX = 0.2, camRotY = 0;
 
-        // PC MOUSE HAREKETİ
         window.addEventListener('mousemove', e => {
             if (!isMobile && document.pointerLockElement === document.body) {
                 camRotY -= e.movementX * 0.003;
@@ -255,7 +252,7 @@
             }
         });
 
-        // --- SIFIRDAN MOBİL DOKUNMATİK MOTORU (EKSİKSİZ) ---
+        // --- MOBİL DOKUNMATİK MOTORU ---
         let joyTouchId = null;
         let camTouchId = null;
         let joyStartX = 0, joyStartY = 0;
@@ -266,16 +263,7 @@
         const jZone = document.getElementById('joystick-zone');
         const jStick = document.getElementById('joystick-stick');
         const jBtn = document.getElementById('jump-btn');
-        const coopBtn = document.getElementById('mobile-coop-btn');
 
-        // Mobil 2 Kişilik Buton Tıklaması
-        coopBtn.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            if(audioCtx.state==='suspended') audioCtx.resume();
-            toggleCoOp();
-        });
-
-        // Mobil Zıplama Butonu
         jBtn.addEventListener('touchstart', (e) => {
             e.preventDefault();
             if(audioCtx.state==='suspended') audioCtx.resume();
@@ -286,19 +274,15 @@
             mobileJumpPressed = false;
         });
 
-        // Tüm Ekran Dokunma Yönetimi (Joystick ve Kamera Çevirme Ayrımı)
         window.addEventListener('touchstart', (e) => {
             if (!isMobile) return;
             for (let t of e.changedTouches) {
-                // Sol tarafa dokunulduysa ve joystick boştaysa -> JOYSTICK BAŞLAT
                 if (t.clientX < window.innerWidth / 2 && joyTouchId === null) {
-                    // Eğer doğrudan joystick alanına yakınsa sabitleyelim
                     const rect = jZone.getBoundingClientRect();
                     joyStartX = rect.left + rect.width / 2;
                     joyStartY = rect.top + rect.height / 2;
                     joyTouchId = t.identifier;
                 } 
-                // Sağ tarafa dokunulduysa ve zıplama butonu değilse -> KAMERA BAŞLAT
                 else if (t.clientX >= window.innerWidth / 2 && t.clientY < window.innerHeight - 150 && camTouchId === null) {
                     camTouchId = t.identifier;
                     prevCamTouchX = t.clientX;
@@ -353,7 +337,6 @@
             joyMoveX = 0; joyMoveY = 0;
             jStick.style.transform = 'translate(0px, 0px)';
         });
-
 
         // --- DANS MEKANİĞİ ---
         function makeDance(p, time, type) {
@@ -422,11 +405,11 @@
                         }
                         if(!isBot && b.isCP && p.cp.z !== b.spawn.z) {
                             p.cp = {x: b.spawn.x, y: b.spawn.y, z: b.spawn.z};
-                            document.getElementById('checkpoint-text').innerText = `${p.tag} Checkpoint Alındı!`;
+                            if(!isMobile) document.getElementById('checkpoint-text').innerText = `${p.tag} Checkpoint Alındı!`;
                         }
                         if(b.isFinish) {
                             gameFinished = true;
-                            document.getElementById('checkpoint-text').innerText = "🏆 PARKUR BİTTİ! HERKES DANSA! 🏆";
+                            if(!isMobile) document.getElementById('checkpoint-text').innerText = "🏆 PARKUR BİTTİ! HERKES DANSA! 🏆";
                         }
                         break;
                     }
@@ -478,13 +461,11 @@
                 makeDance(bot1, totalTime, 'END');
                 makeDance(bot2, totalTime, 'END');
             } else {
-                // --- P1 HAREKET HESABI (KLAVYE VE JOYSTICK BİRLEŞTİRİLDİ) ---
                 let mx1 = 0, mz1 = 0;
                 const forward = new THREE.Vector3(0, 0, -1).applyAxisAngle(new THREE.Vector3(0, 1, 0), camRotY).normalize();
                 const right = new THREE.Vector3(1, 0, 0).applyAxisAngle(new THREE.Vector3(0, 1, 0), camRotY).normalize();
 
                 if (isMobile) {
-                    // Mobil Joystick Değerlerini Kameraya Göre Yansıt
                     let mSpeed = 0.09;
                     mx1 += (forward.x * -joyMoveY + right.x * joyMoveX) * mSpeed;
                     mz1 += (forward.z * -joyMoveY + right.z * joyMoveX) * mSpeed;
@@ -493,7 +474,6 @@
                         p1.velY = p1.jumpPower; p1.grounded = false; playSound(120, 280, 'triangle', 0.15);
                     }
                 } else {
-                    // PC Klavye Kontrolleri
                     let speed1 = keys['ShiftLeft'] ? 0.14 : 0.08;
                     if(keys['KeyW']) { mx1 += forward.x * speed1; mz1 += forward.z * speed1; }
                     if(keys['KeyS']) { mx1 -= forward.x * speed1; mz1 -= forward.z * speed1; }
@@ -503,7 +483,6 @@
                     if(keys['Space'] && p1.grounded) { p1.velY = p1.jumpPower; p1.grounded = false; playSound(120, 280, 'triangle', 0.15); }
                 }
 
-                // P2 Klavye Hareketleri (Sadece Co-Op Açıksa)
                 let mx2 = 0, mz2 = 0;
                 if(coOpModeActive && !isMobile) {
                     let speed2 = 0.08;
