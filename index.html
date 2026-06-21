@@ -54,7 +54,7 @@
             document.getElementById('joystick-zone').style.display = 'block';
             document.getElementById('jump-btn').style.display = 'block';
             document.getElementById('crosshair').style.display = 'none';
-            document.getElementById('ui').style.display = 'none'; // SOL ÜSTTEKİ P1-P2 BİLGİ KUTUSU MOBİLDE GİZLENDİ
+            document.getElementById('ui').style.display = 'none'; 
         }
 
         // --- PC İÇİN POINTER LOCK ---
@@ -86,7 +86,7 @@
         const ambientLight = new THREE.AmbientLight(0xffffff, 0.75); scene.add(ambientLight);
         const dirLight = new THREE.DirectionalLight(0xfff5ea, 0.7); dirLight.position.set(40, 80, 30); scene.add(dirLight);
 
-        // --- 3. DOKU ÜRETECİ (HD TEXTURE) ---
+        // --- 3. DOKU ÜRETECİ ---
         function createPixelTexture(base, noise, shadow) {
             const canvas = document.createElement('canvas'); canvas.width = 64; canvas.height = 64;
             const ctx = canvas.getContext('2d'); ctx.fillStyle = base; ctx.fillRect(0, 0, 64, 64);
@@ -207,7 +207,12 @@
             const rLeg = new THREE.Mesh(new THREE.BoxGeometry(0.26,0.8,0.26), new THREE.MeshLambertMaterial({map:pantsTex})); rLeg.position.set(0.22,0.4,0); group.add(rLeg);
 
             scene.add(group);
-            return { mesh: group, lLeg:lLeg, rLeg:rLeg, lArm:lArm, rArm:rArm, velY:0, grounded:true, deaths:0, cp:{x:0,y:0,z:20}, jumpPower:0.16, powerTimer:0, targetBlockIdx: 0, tag: name };
+            return { 
+                mesh: group, lLeg:lLeg, rLeg:rLeg, lArm:lArm, rArm:rArm, 
+                velY:0, grounded:true, deaths:0, cp:{x:0,y:0,z:20}, 
+                jumpPower:0.16, powerTimer:0, targetBlockIdx: 0, tag: name,
+                jumpCount: 0 // ÇİFT ZIPLAMA TAKİBİ İÇİN DEĞİŞKEN
+            };
         }
 
         const p1 = createCharacter("Mahmut 1 (Sen)", cloth1, false); p1.mesh.position.set(0, 0, 20);
@@ -218,7 +223,7 @@
         let coOpModeActive = false; 
 
         function toggleCoOp() {
-            if(isMobile) return; // MOBİLDE 2 KİŞİLİK MOD TAMAMEN DEVRE DIŞI
+            if(isMobile) return; 
             coOpModeActive = !coOpModeActive;
             if(coOpModeActive) {
                 p2.mesh.position.set(p1.mesh.position.x + 1.5, p1.mesh.position.y, p1.mesh.position.z);
@@ -237,6 +242,24 @@
         const keys = {};
         window.addEventListener('keydown', e => { 
             if(audioCtx.state==='suspended') audioCtx.resume(); 
+            
+            // PC Çift Zıplama Mantığı (Space tuşuna ilk basış anı kontrolü)
+            if (e.code === 'Space' && !keys['Space']) {
+                if (p1.grounded) {
+                    p1.velY = p1.jumpPower; p1.grounded = false; p1.jumpCount = 1;
+                    playSound(120, 280, 'triangle', 0.15);
+                } else if (p1.jumpCount === 1) { // Havadayken 2. kez basıldıysa
+                    p1.velY = p1.jumpPower * 0.95; p1.jumpCount = 2;
+                    playSound(240, 480, 'sine', 0.12); // Çift zıplamaya özel ince ses
+                }
+            }
+
+            // PC P2 Zıplama Kontrolü (Num0 veya ShiftRight)
+            if ((e.code === 'Numpad0' || e.code === 'ShiftRight') && !keys[e.code] && coOpModeActive && !isMobile) {
+                if (p2.grounded) { p2.velY = p2.jumpPower; p2.grounded = false; p2.jumpCount = 1; playSound(125, 285, 'triangle', 0.15); }
+                else if (p2.jumpCount === 1) { p2.velY = p2.jumpPower * 0.95; p2.jumpCount = 2; playSound(245, 485, 'sine', 0.12); }
+            }
+
             keys[e.code]=true; 
             if(e.code === 'Digit2') toggleCoOp();
         });
@@ -258,20 +281,23 @@
         let joyStartX = 0, joyStartY = 0;
         let joyMoveX = 0, joyMoveY = 0;
         let prevCamTouchX = 0, prevCamTouchY = 0;
-        let mobileJumpPressed = false;
 
         const jZone = document.getElementById('joystick-zone');
         const jStick = document.getElementById('joystick-stick');
         const jBtn = document.getElementById('jump-btn');
 
+        // Mobil Dokunma ile Çift Zıplama Tetikleyicisi
         jBtn.addEventListener('touchstart', (e) => {
             e.preventDefault();
             if(audioCtx.state==='suspended') audioCtx.resume();
-            mobileJumpPressed = true;
-        });
-        jBtn.addEventListener('touchend', (e) => {
-            e.preventDefault();
-            mobileJumpPressed = false;
+            
+            if (p1.grounded) {
+                p1.velY = p1.jumpPower; p1.grounded = false; p1.jumpCount = 1;
+                playSound(120, 280, 'triangle', 0.15);
+            } else if (p1.jumpCount === 1) {
+                p1.velY = p1.jumpPower * 0.95; p1.jumpCount = 2;
+                playSound(240, 480, 'sine', 0.12);
+            }
         });
 
         window.addEventListener('touchstart', (e) => {
@@ -367,7 +393,7 @@
             let isFlying = (p === p1) && keys['KeyH'] && keys['KeyM'] && keys['KeyZ'];
             if (isFlying) {
                 p.mesh.position.y += 0.15; p.mesh.position.x += mx; p.mesh.position.z += mz;
-                p.velY = 0; p.grounded = true;
+                p.velY = 0; p.grounded = true; p.jumpCount = 0;
                 return;
             }
 
@@ -385,9 +411,14 @@
                 p.lLeg.rotation.x = Math.sin(time)*0.6; p.rLeg.rotation.x = -Math.sin(time)*0.6;
                 p.lArm.rotation.x = -Math.sin(time)*0.6; p.rArm.rotation.x = Math.sin(time)*0.6;
             } else if(!p.grounded && !checkManualDance) {
-                p.lLeg.rotation.x = -0.2; p.rLeg.rotation.x = 0.2;
+                // Havada takla efekti (Çift zıplama yapıldıysa hızlı döner)
+                if(p.jumpCount === 2) {
+                    p.mesh.rotation.x += delta * 12;
+                } else {
+                    p.lLeg.rotation.x = -0.2; p.rLeg.rotation.x = 0.2;
+                }
             } else if (!checkManualDance) {
-                p.lLeg.rotation.x = p.rLeg.rotation.x = p.lArm.rotation.x = p.rArm.rotation.x = 0;
+                p.lLeg.rotation.x = p.rLeg.rotation.x = p.lArm.rotation.x = p.rArm.rotation.x = p.mesh.rotation.x = 0;
             }
 
             p.velY -= 0.007; p.mesh.position.y += p.velY;
@@ -397,7 +428,8 @@
                 const bx = p.mesh.position.x; const by = p.mesh.position.y; const bz = p.mesh.position.z;
                 if(bx >= b.minX-0.4 && bx <= b.maxX+0.4 && bz >= b.minZ-0.4 && bz <= b.maxZ+0.4) {
                     if(by <= b.topY && by >= b.topY-0.4 && p.velY <= 0) {
-                        p.mesh.position.y = b.topY; p.velY = 0; p.grounded = true; hit = true;
+                        p.mesh.position.y = b.topY; p.velY = 0; p.grounded = true; p.jumpCount = 0; hit = true;
+                        p.mesh.rotation.x = 0; // Yere basınca takla rotasyonunu sıfırla
                         if(b.isMoving) {
                             let offsetVelocity = Math.cos(clock.getElapsedTime() * 2) * 0.05;
                             if (b.moveType === 'side') p.mesh.position.x += offsetVelocity;
@@ -433,7 +465,7 @@
                     if(p === bot2) document.getElementById('bot2-val').innerText = p.deaths;
                     p.targetBlockIdx = Math.max(0, p.targetBlockIdx - 2); 
                 }
-                p.mesh.position.set(p.cp.x, p.cp.y, p.cp.z); p.velY = 0; p.grounded = true;
+                p.mesh.position.set(p.cp.x, p.cp.y, p.cp.z); p.velY = 0; p.grounded = true; p.jumpCount = 0; p.mesh.rotation.x = 0;
             }
         }
 
@@ -469,18 +501,12 @@
                     let mSpeed = 0.09;
                     mx1 += (forward.x * -joyMoveY + right.x * joyMoveX) * mSpeed;
                     mz1 += (forward.z * -joyMoveY + right.z * joyMoveX) * mSpeed;
-
-                    if (mobileJumpPressed && p1.grounded) {
-                        p1.velY = p1.jumpPower; p1.grounded = false; playSound(120, 280, 'triangle', 0.15);
-                    }
                 } else {
                     let speed1 = keys['ShiftLeft'] ? 0.14 : 0.08;
                     if(keys['KeyW']) { mx1 += forward.x * speed1; mz1 += forward.z * speed1; }
                     if(keys['KeyS']) { mx1 -= forward.x * speed1; mz1 -= forward.z * speed1; }
                     if(keys['KeyA']) { mx1 -= right.x * speed1; mz1 -= right.z * speed1; }
                     if(keys['KeyD']) { mx1 += right.x * speed1; mz1 += right.z * speed1; }
-
-                    if(keys['Space'] && p1.grounded) { p1.velY = p1.jumpPower; p1.grounded = false; playSound(120, 280, 'triangle', 0.15); }
                 }
 
                 let mx2 = 0, mz2 = 0;
@@ -490,16 +516,17 @@
                     if(keys['ArrowDown']) { mx2 -= forward.x * speed2; mz2 -= forward.z * speed2; }
                     if(keys['ArrowLeft']) { mx2 -= right.x * speed2; mz2 -= right.z * speed2; }
                     if(keys['ArrowRight']) { mx2 += right.x * speed2; mz2 += right.z * speed2; }
-                    if((keys['Numpad0'] || keys['ShiftRight']) && p2.grounded) { p2.velY = p2.jumpPower; p2.grounded = false; playSound(125, 285, 'triangle', 0.15); }
                 }
 
                 if(p1.mesh.position.distanceTo(bootItem.position) < 1.2 && p1.powerTimer <= 0) {
                     p1.jumpPower = 0.24; p1.powerTimer = 5.0; playSound(300, 600, 'sine', 0.3);
                 }
 
-                if (keys['KeyG']) makeDance(p1, totalTime, 'G');
-                else if (keys['KeyF']) makeDance(p1, totalTime, 'F');
-                else if (keys['KeyJ']) makeDance(p1, totalTime, 'J');
+                if (!isMobile) {
+                    if (keys['KeyG']) makeDance(p1, totalTime, 'G');
+                    else if (keys['KeyF']) makeDance(p1, totalTime, 'F');
+                    else if (keys['KeyJ']) makeDance(p1, totalTime, 'J');
+                }
 
                 updatePhysics(p1, mx1, mz1, delta, false);
                 if(coOpModeActive) updatePhysics(p2, mx2, mz2, delta, false);
