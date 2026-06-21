@@ -1,6 +1,3 @@
-
-
-```html
 <!DOCTYPE html>
 <html lang="tr">
 <head>
@@ -37,6 +34,7 @@
         <p><b>P2:</b> Yön Okları | Num0 veya Sağ Shift</p>
         <p><b>SAHA:</b> Başlangıç adasının hemen SAĞINDA birleşik!</p>
         <p><b>HİLE:</b> H + M + Z ile UÇ!</p>
+        <p><b>DANS:</b> G ile Dans 1 | F ile Dans 2</p>
         <hr style="border-color: #444;">
         <p id="checkpoint-text" style="color: #55ff55; font-weight: bold;">Saha Adaya Birleştirildi!</p>
     </div>
@@ -227,7 +225,7 @@
                 mesh: group, lLeg:lLeg, rLeg:rLeg, lArm:lArm, rArm:rArm, 
                 velY:0, grounded:true, deaths:0, goals:0, cp:{x:0,y:0,z:15}, 
                 jumpPower:0.16, targetBlockIdx: parkurStartIndex, tag: name, jumpCount: 0,
-                danceTimer: 0 
+                danceTimer: 0, danceType: 0, isFlying: false
             };
         }
 
@@ -253,8 +251,28 @@
             }
         }
 
+        // --- DANS FONKSİYONLARI ---
+        function makeDance1(p, time) {
+            p.lArm.rotation.z = -Math.PI / 2 + Math.sin(time*25)*0.3;
+            p.rArm.rotation.z = Math.PI / 2 + Math.sin(time*25)*0.3;
+            p.mesh.rotation.y = time * 10;
+            p.lLeg.rotation.x = Math.sin(time*25)*0.5; 
+            p.rLeg.rotation.x = -Math.sin(time*25)*0.5;
+        }
+
+        function makeDance2(p, time) {
+            p.lArm.rotation.z = Math.sin(time*20)*0.8;
+            p.rArm.rotation.z = -Math.sin(time*20)*0.8;
+            p.mesh.rotation.x = Math.sin(time*15)*0.3;
+            p.lLeg.rotation.z = Math.sin(time*20)*0.4;
+            p.rLeg.rotation.z = -Math.sin(time*20)*0.4;
+        }
+
         // --- CONTROLS ---
         const keys = {};
+        let mobileJumpCount = 0;
+        let mobileJumpTimer = 0;
+
         window.addEventListener('keydown', e => { 
             if(audioCtx.state==='suspended') audioCtx.resume(); 
             if (e.code === 'Space' && !keys['Space'] && p1.danceTimer <= 0) {
@@ -265,6 +283,21 @@
                 if (p2.grounded) { p2.velY = p2.jumpPower; p2.grounded = false; p2.jumpCount = 1; playSound(125, 285, 'triangle', 0.15); }
                 else if (p2.jumpCount === 1) { p2.velY = p2.jumpPower * 0.95; p2.jumpCount = 2; playSound(245, 485, 'sine', 0.12); }
             }
+            
+            // G tuşu - Dans 1
+            if (e.code === 'KeyG' && p1.danceTimer <= 0) {
+                p1.danceTimer = 5.0;
+                p1.danceType = 1;
+                playSound(300, 400, 'sine', 0.1);
+            }
+            
+            // F tuşu - Dans 2
+            if (e.code === 'KeyF' && p1.danceTimer <= 0) {
+                p1.danceTimer = 5.0;
+                p1.danceType = 2;
+                playSound(250, 350, 'sine', 0.1);
+            }
+            
             keys[e.code]=true; 
             if(e.code === 'Digit2') toggleCoOp();
         });
@@ -286,6 +319,19 @@
 
         jBtn.addEventListener('touchstart', (e) => {
             e.preventDefault(); if(audioCtx.state==='suspended') audioCtx.resume();
+            
+            mobileJumpCount++;
+            mobileJumpTimer = 0.3;
+            
+            // 3 kere hızlıca basarsa uçma
+            if(mobileJumpCount === 3) {
+                p1.isFlying = true;
+                p1.velY = 0;
+                playSound(400, 600, 'sine', 0.2);
+                mobileJumpCount = 0;
+                return;
+            }
+            
             if(p1.danceTimer > 0) return;
             if (p1.grounded) { p1.velY = p1.jumpPower; p1.grounded = false; p1.jumpCount = 1; playSound(120, 280, 'triangle', 0.15); }
             else if (p1.jumpCount === 1) { p1.velY = p1.jumpPower * 0.95; p1.jumpCount = 2; playSound(240, 480, 'sine', 0.12); }
@@ -324,24 +370,22 @@
             }
         });
 
-        function makeDance(p, time) {
-            p.lArm.rotation.z = -Math.PI / 2; p.rArm.rotation.z = Math.PI / 2;
-            p.mesh.rotation.y = time * 10;
-            p.lLeg.rotation.x = Math.sin(time*25)*0.5; p.rLeg.rotation.x = -Math.sin(time*25)*0.5;
-        }
-
         // --- 7. PHYSICS & TICK LOOP ---
         const clock = new THREE.Clock();
 
         function updatePhysics(p, mx, mz, delta, isBot=false) {
             if (p.danceTimer > 0) {
                 p.danceTimer -= delta;
-                makeDance(p, clock.getElapsedTime());
+                if(p.danceType === 1) {
+                    makeDance1(p, clock.getElapsedTime());
+                } else if(p.danceType === 2) {
+                    makeDance2(p, clock.getElapsedTime());
+                }
                 p.velY = 0;
                 return; 
             }
 
-            let isFlying = (p === p1) && keys['KeyH'] && keys['KeyM'] && keys['KeyZ'];
+            let isFlying = (p === p1 && p.isFlying) || ((p === p1) && keys['KeyH'] && keys['KeyM'] && keys['KeyZ']);
             if (isFlying) {
                 p.mesh.position.y += 0.15; p.mesh.position.x += mx; p.mesh.position.z += mz;
                 return;
@@ -400,6 +444,7 @@
             // FALL OUT / RESPAWN
             if(p.mesh.position.y < -15) {
                 p.deaths++;
+                p.isFlying = false;
                 if(p === p1) document.getElementById('timer-val').innerText = p.deaths;
                 if(p === p2) document.getElementById('p2-val').innerText = p.deaths;
                 if(isBot) {
@@ -415,6 +460,13 @@
             requestAnimationFrame(animate);
             const delta = clock.getDelta();
             const totalTime = clock.getElapsedTime();
+
+            // Mobil jump timer güncelle
+            if(mobileJumpTimer > 0) {
+                mobileJumpTimer -= delta;
+            } else {
+                mobileJumpCount = 0;
+            }
 
             for(let b of blocks) {
                 if(b.isMoving) {
@@ -445,7 +497,7 @@
             // GOL SİSTEMİ
             if(ball.position.z <= minSahaZ && ball.position.x >= footballSahaX - 4 && ball.position.x <= footballSahaX + 4) {
                 if(lastToucher) {
-                    lastToucher.goals++; lastToucher.danceTimer = 5.0;
+                    lastToucher.goals++; lastToucher.danceTimer = 5.0; lastToucher.danceType = 1;
                     if(lastToucher === p1) document.getElementById('p1-goals').innerText = p1.goals;
                     if(lastToucher === p2) document.getElementById('p2-goals').innerText = p2.goals;
                     const overlay = document.getElementById('goal-overlay');
@@ -456,7 +508,7 @@
             }
             else if(ball.position.z >= maxSahaZ && ball.position.x >= footballSahaX - 4 && ball.position.x <= footballSahaX + 4) {
                 if(lastToucher) {
-                    lastToucher.goals++; lastToucher.danceTimer = 5.0;
+                    lastToucher.goals++; lastToucher.danceTimer = 5.0; lastToucher.danceType = 1;
                     if(lastToucher === p1) document.getElementById('p1-goals').innerText = p1.goals;
                     if(lastToucher === p2) document.getElementById('p2-goals').innerText = p2.goals;
                     const overlay = document.getElementById('goal-overlay');
@@ -467,7 +519,7 @@
             }
 
             if(gameFinished) {
-                makeDance(p1, totalTime); makeDance(p2, totalTime);
+                makeDance1(p1, totalTime); makeDance1(p2, totalTime);
             } else {
                 let mx1 = 0, mz1 = 0;
                 const forward = new THREE.Vector3(0, 0, -1).applyAxisAngle(new THREE.Vector3(0, 1, 0), camRotY).normalize();
@@ -572,5 +624,3 @@
     </script>
 </body>
 </html>
-
-```
