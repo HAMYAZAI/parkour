@@ -30,14 +30,14 @@
     <div id="goal-overlay">⚽ GOOOL! ⚽</div>
 
     <div id="ui">
-        <h3>HAMYAZPARKOUR v13</h3>
+        <h3>HAMYAZPARKOUR v14</h3>
         <p style="color: #ffcc00; font-weight: bold;">-> PC: 2 TUŞU İLE KUZENLE OYNA <-</p>
         <p><b>P1:</b> W,A,S,D / Mobil Joystick</p>
         <p><b>P2:</b> Yön Okları | Num0 veya Sağ Shift</p>
-        <p><b>SAHA:</b> Başlangıçta topa vur, gol at!</p>
+        <p><b>SAHA:</b> Başlangıcın SAĞ TARAFINDA! ⚽</p>
         <p><b>HİLE:</b> H + M + Z ile UÇ!</p>
         <hr style="border-color: #444;">
-        <p id="checkpoint-text" style="color: #55ff55; font-weight: bold;">Sahada Maç Başladı!</p>
+        <p id="checkpoint-text" style="color: #55ff55; font-weight: bold;">Saha Yana Taşındı!</p>
     </div>
 
     <div id="stats">
@@ -131,22 +131,29 @@
             blocks.push(b); return b;
         }
 
-        // Büyük Başlangıç Alanı (Futbol Sahası Buraya Gelecek)
-        const spawnPlatform = createBlock(0, -1, 15, 34, 2, 40, grassTex); 
+        // Ana Temiz Başlangıç Alanı (Parkur için)
+        createBlock(0, -1, 15, 16, 2, 20, grassTex); 
 
-        // Sahanın Çizgileri ve Kaleleri
-        function buildGoal(zPos, color) {
+        // FUTBOL SAHASI (BAŞLANGICIN YANINA - SAĞ TARAFA TAŞINDI: X = 45)
+        const footballSahaX = 45;
+        const footballSahaZCenter = 15;
+        const footballSahaLength = 40;
+        const footballSahaWidth = 26;
+        
+        // Futbol Zemin Platformu
+        createBlock(footballSahaX, -1, footballSahaZCenter, footballSahaWidth, 2, footballSahaLength, grassTex); 
+
+        // Kaleleri Yeni Yan Sahaya Yerleştirme
+        function buildGoal(xPos, zPos) {
             const pMat = new THREE.MeshLambertMaterial({ color: 0xffffff });
-            const topPole = new THREE.Mesh(new THREE.BoxGeometry(8, 0.3, 0.3), pMat); topPole.position.set(0, 3, zPos); scene.add(topPole);
-            const leftPole = new THREE.Mesh(new THREE.BoxGeometry(0.3, 3, 0.3), pMat); leftPole.position.set(-4, 1.5, zPos); scene.add(leftPole);
-            const rightPole = new THREE.Mesh(new THREE.BoxGeometry(0.3, 3, 0.3), pMat); rightPole.position.set(4, 1.5, zPos); scene.add(rightPole);
-            
-            // Kalelerin arkasına görünmez minik engeller eklemeyelim ki top girsin
+            const topPole = new THREE.Mesh(new THREE.BoxGeometry(8, 0.3, 0.3), pMat); topPole.position.set(xPos, 3, zPos); scene.add(topPole);
+            const leftPole = new THREE.Mesh(new THREE.BoxGeometry(0.3, 3, 0.3), pMat); leftPole.position.set(xPos - 4, 1.5, zPos); scene.add(leftPole);
+            const rightPole = new THREE.Mesh(new THREE.BoxGeometry(0.3, 3, 0.3), pMat); rightPole.position.set(xPos + 4, 1.5, zPos); scene.add(rightPole);
         }
-        buildGoal(32, 0xffffff); // Güney Kalesi
-        buildGoal(-2, 0xffffff); // Kuzey Kalesi
+        buildGoal(footballSahaX, footballSahaZCenter + (footballSahaLength / 2)); // Güney Kalesi (Z = 35)
+        buildGoal(footballSahaX, footballSahaZCenter - (footballSahaLength / 2)); // Kuzey Kalesi (Z = -5)
 
-        // Parkur Parçaları
+        // Parkur Parçaları (Eski düzen bozulmadı)
         createBlock(0, 0, -2, 4, 2, 4, stoneTex);
         createBlock(0, 1, -9, 2.5, 2, 2.5, stoneTex);
         createBlock(3, 2, -15, 2.5, 2, 2.5, stoneTex);
@@ -172,18 +179,18 @@
         // --- 5. FUTBOL TOPU SİSTEMİ ---
         const ballGeo = new THREE.SphereGeometry(0.5, 16, 16);
         const ballMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.2 });
-        // Siyah beyaz desen havası için wireframe çizgileri ekleyelim
         const ballWire = new THREE.Mesh(ballGeo, new THREE.MeshBasicMaterial({color: 0x000000, wireframe: true}));
         const ball = new THREE.Group(); ball.add(new THREE.Mesh(ballGeo, ballMat)); ball.add(ballWire);
-        ball.position.set(0, 0.5, 15); scene.add(ball);
-
-        let ballVelX = 0, ballVelZ = 0;
-        let lastToucher = null; 
-
+        
+        // Top yeni yan sahanın tam ortasında doğuyor
         function resetBall() {
-            ball.position.set(0, 0.5, 15);
+            ball.position.set(footballSahaX, 0.5, footballSahaZCenter);
             ballVelX = 0; ballVelZ = 0;
         }
+        let ballVelX = 0, ballVelZ = 0;
+        let lastToucher = null; 
+        resetBall();
+        scene.add(ball);
 
         // --- 6. KARAKTER FABRİKASI ---
         function createCharacter(name, shirtTex, isP2=false) {
@@ -216,14 +223,14 @@
                 mesh: group, lLeg:lLeg, rLeg:rLeg, lArm:lArm, rArm:rArm, 
                 velY:0, grounded:true, deaths:0, goals:0, cp:{x:0,y:0,z:20}, 
                 jumpPower:0.16, targetBlockIdx: 0, tag: name, jumpCount: 0,
-                danceTimer: 0 // Otomatik gol dansı sayacı
+                danceTimer: 0 
             };
         }
 
         const p1 = createCharacter("Mahmut 1 (Sen)", cloth1, false); p1.mesh.position.set(-2, 0, 20);
         const p2 = createCharacter("Mahmut 4 (P2)", cloth4, true); p2.mesh.position.set(2, 0, 20); 
-        const bot1 = createCharacter("Mahmut 2", cloth2, false); bot1.mesh.position.set(-12, 0, 18);
-        const bot2 = createCharacter("Mahmut 3", cloth3, false); bot2.mesh.position.set(12, 0, 18);
+        const bot1 = createCharacter("Mahmut 2", cloth2, false); bot1.mesh.position.set(-6, 0, 18);
+        const bot2 = createCharacter("Mahmut 3", cloth3, false); bot2.mesh.position.set(6, 0, 18);
 
         let coOpModeActive = false; 
 
@@ -266,7 +273,7 @@
             }
         });
 
-        // MOBİL DOKUNMA ENGINE
+        // MOBİL DOKUNMA
         let joyTouchId = null; let camTouchId = null;
         let joyStartX = 0, joyStartY = 0; let joyMoveX = 0, joyMoveY = 0;
         let prevCamTouchX = 0, prevCamTouchY = 0;
@@ -373,7 +380,7 @@
             }
             if(!hit) p.grounded = false;
 
-            // TOP KONTROLÜ (Karakter Topa Çarptı Mı?)
+            // TOP KONTROLÜ (Yan sahada topa çarpma mekaniği)
             let distToBall = p.mesh.position.distanceTo(ball.position);
             if(distToBall < 1.1) {
                 let diffX = ball.position.x - p.mesh.position.x;
@@ -381,7 +388,7 @@
                 let len = Math.sqrt(diffX*diffX + diffZ*diffZ) || 1;
                 ballVelX = (diffX / len) * 0.35;
                 ballVelZ = (diffZ / len) * 0.35;
-                lastToucher = p; // En son dokunan oyuncu
+                lastToucher = p; 
                 playSound(350, 180, 'sine', 0.08);
             }
 
@@ -406,54 +413,53 @@
                 }
             }
 
-            // --- BALL PHYSICS ---
+            // --- BALL PHYSICS (YAN SAHA İÇİNDE SINIRLANDIRMA) ---
             ball.position.x += ballVelX;
             ball.position.z += ballVelZ;
-            ballVelX *= 0.97; ballVelZ *= 0.97; // Sürtünme yavaşlaması
+            ballVelX *= 0.97; ballVelZ *= 0.97; 
 
-            // Topun dönme efekti
             ball.rotation.x += ballVelZ * 0.5;
             ball.rotation.z -= ballVelX * 0.5;
 
-            // Saha dışı duvar sınırları
-            if(ball.position.x > 16.5) { ball.position.x = 16.5; ballVelX *= -0.8; }
-            if(ball.position.x < -16.5) { ball.position.x = -16.5; ballVelX *= -0.8; }
-            if(ball.position.z > 34.5) { ball.position.z = 34.5; ballVelZ *= -0.8; }
+            // Sahanın kendi sınır korumaları (X = 45 merkezli)
+            let minSahaX = footballSahaX - (footballSahaWidth / 2) + 0.5;
+            let maxSahaX = footballSahaX + (footballSahaWidth / 2) - 0.5;
+            let minSahaZ = footballSahaZCenter - (footballSahaLength / 2);
+            let maxSahaZ = footballSahaZCenter + (footballSahaLength / 2);
 
-            // KALE / GOL KONTROLÜ
-            // Kuzey Kalesi Gol Çizgisi (z <= -2)
-            if(ball.position.z <= -2 && ball.position.x >= -4 && ball.position.x <= 4) {
-                if(lastToucher) {
-                    lastToucher.goals++;
-                    lastToucher.danceTimer = 5.0; // 5 saniye otomatik sevinç dansı
-                    if(lastToucher === p1) document.getElementById('p1-goals').innerText = p1.goals;
-                    if(lastToucher === p2) document.getElementById('p2-goals').innerText = p2.goals;
-                    
-                    const overlay = document.getElementById('goal-overlay');
-                    overlay.innerText = `⚽ GOOOL! - ${lastToucher.tag.split(" ")[0]} ⚽`;
-                    overlay.style.display = 'block';
-                    setTimeout(() => overlay.style.display = 'none', 3000);
-                }
-                playSound(150, 600, 'sawtooth', 0.6);
-                resetBall();
-            }
-            // Güney Kalesi Gol Çizgisi (z >= 32)
-            else if(ball.position.z >= 32 && ball.position.x >= -4 && ball.position.x <= 4) {
+            if(ball.position.x > maxSahaX) { ball.position.x = maxSahaX; ballVelX *= -0.8; }
+            if(ball.position.x < minSahaX) { ball.position.x = minSahaX; ballVelX *= -0.8; }
+            if(ball.position.z > maxSahaZ) { ball.position.z = maxSahaZ; ballVelZ *= -0.8; }
+
+            // GOL ÇİZGİSİ KONTROLLERİ (Yeni koordinatlara göre)
+            // Kuzey Kalesi Golü (z <= minSahaZ)
+            if(ball.position.z <= minSahaZ && ball.position.x >= footballSahaX - 4 && ball.position.x <= footballSahaX + 4) {
                 if(lastToucher) {
                     lastToucher.goals++; lastToucher.danceTimer = 5.0;
                     if(lastToucher === p1) document.getElementById('p1-goals').innerText = p1.goals;
                     if(lastToucher === p2) document.getElementById('p2-goals').innerText = p2.goals;
                     
                     const overlay = document.getElementById('goal-overlay');
-                    overlay.innerText = `⚽ GOOOL! - ${lastToucher.tag.split(" ")[0]} ⚽`;
-                    overlay.style.display = 'block';
+                    overlay.innerText = `⚽ GOOOL! - ${lastToucher.tag.split(" ")[0]} ⚽`; overlay.style.display = 'block';
                     setTimeout(() => overlay.style.display = 'none', 3000);
                 }
-                playSound(150, 600, 'sawtooth', 0.6);
-                resetBall();
+                playSound(150, 600, 'sawtooth', 0.6); resetBall();
             }
-            // Sahanın arkasına kaçarsa korner/aut gibi sıfırla
-            else if(ball.position.z < -2.5) {
+            // Güney Kalesi Golü (z >= maxSahaZ)
+            else if(ball.position.z >= maxSahaZ && ball.position.x >= footballSahaX - 4 && ball.position.x <= footballSahaX + 4) {
+                if(lastToucher) {
+                    lastToucher.goals++; lastToucher.danceTimer = 5.0;
+                    if(lastToucher === p1) document.getElementById('p1-goals').innerText = p1.goals;
+                    if(lastToucher === p2) document.getElementById('p2-goals').innerText = p2.goals;
+                    
+                    const overlay = document.getElementById('goal-overlay');
+                    overlay.innerText = `⚽ GOOOL! - ${lastToucher.tag.split(" ")[0]} ⚽`; overlay.style.display = 'block';
+                    setTimeout(() => overlay.style.display = 'none', 3000);
+                }
+                playSound(150, 600, 'sawtooth', 0.6); resetBall();
+            }
+            // Beklenmedik bir şekilde dışarı çıkarsa sıfırla
+            else if(ball.position.z < minSahaZ - 0.5) {
                 resetBall();
             }
 
@@ -488,7 +494,7 @@
                 updatePhysics(p1, mx1, mz1, delta, false);
                 if(coOpModeActive) updatePhysics(p2, mx2, mz2, delta, false);
 
-                // Botlar (Parkura devam ediyorlar)
+                // Botlar (Sadece kendi kulvarlarında parkur yapıyorlar)
                 [bot1, bot2].forEach((bot, index) => {
                     if (bot.targetBlockIdx >= blocks.length) return;
                     let currentPos = bot.mesh.position;
