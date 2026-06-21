@@ -27,9 +27,11 @@
     <div id="crosshair"></div>
 
     <div id="ui">
-        <h3>HAMYAZPARKOUR v10 [G, F, J DANSI AKTİF]</h3>
-        <p><b>PC:</b> Ekrana Tıkla -> Fareyi Oynatarak Bak | W,A,S,D ile Yürü</p>
-        <p><b>DANS ETMEK İÇİN:</b> G, F veya J tuşuna basılı tut!</p>
+        <h3>HAMYAZPARKOUR v10 [ÖZEL DANSLAR]</h3>
+        <p><b>PC:</b> W,A,S,D ile Yürü | Shift: Koş</p>
+        <p><b>G TUŞU:</b> Helikopter Dansı 🚁</p>
+        <p><b>F TUŞU:</b> Kafa Sallama Dansı 🕺</p>
+        <p><b>J TUŞU:</b> Akrobat/Matrix Dansı 🥷</p>
         <p><b>KİLİTTEN ÇIKMA:</b> ESC</p>
         <hr style="border-color: #444;">
         <p id="checkpoint-text" style="color: #55ff55; font-weight: bold;">Ekrana bir kez tıkla ve oyna!</p>
@@ -291,13 +293,34 @@
             if(p1.grounded && !gameFinished) { p1.velY = p1.jumpPower; p1.grounded = false; playSound(130, 280, 'triangle', 0.15); }
         }, {passive:true});
 
-        // --- DANS MEKANİĞİ FONKSİYONU ---
-        function makeDance(p, time) {
-            p.lLeg.rotation.x = Math.sin(time * 18) * 0.7;
-            p.rLeg.rotation.x = -Math.sin(time * 18) * 0.7;
-            p.lArm.rotation.z = -Math.abs(Math.sin(time * 12)) * 1.5 - 0.2;
-            p.rArm.rotation.z = Math.abs(Math.sin(time * 12)) * 1.5 + 0.2;
-            p.mesh.rotation.y = time * 4; 
+        // --- 3 FARKLI ÖZEL DANS MEKANİĞİ ---
+        function makeDance(p, time, type) {
+            if (type === 'G') {
+                // 1. Helikopter Dansı
+                p.lArm.rotation.z = -Math.PI / 2;
+                p.rArm.rotation.z = Math.PI / 2;
+                p.mesh.rotation.y = time * 8; // Çok hızlı dönüş
+                p.lLeg.rotation.x = Math.sin(time*20)*0.3;
+                p.rLeg.rotation.x = -Math.sin(time*20)*0.3;
+            } else if (type === 'F') {
+                // 2. Kafa Sallama Dansı
+                p.mesh.rotation.z = Math.sin(time * 10) * 0.3;
+                p.lArm.rotation.x = Math.sin(time * 15) * 1.2;
+                p.rArm.rotation.x = -Math.sin(time * 15) * 1.2;
+                p.lLeg.rotation.x = 0; p.rLeg.rotation.x = 0;
+            } else if (type === 'J') {
+                // 3. Matrix/Akrobat Taklası
+                p.mesh.rotation.x = time * 12; // Havada takla
+                p.lArm.rotation.z = -Math.sin(time*5)*0.5;
+                p.rArm.rotation.z = Math.sin(time*5)*0.5;
+            } else {
+                // Varsayılan Bitiş Dansı
+                p.lLeg.rotation.x = Math.sin(time * 18) * 0.7;
+                p.rLeg.rotation.x = -Math.sin(time * 18) * 0.7;
+                p.lArm.rotation.z = -Math.abs(Math.sin(time * 12)) * 1.5 - 0.2;
+                p.rArm.rotation.z = Math.abs(Math.sin(time * 12)) * 1.5 + 0.2;
+                p.mesh.rotation.y = time * 4;
+            }
         }
 
         // --- FİZİK VE HAREKET DÖNGÜSÜ ---
@@ -306,27 +329,33 @@
         function updatePhysics(p, mx, mz, delta, isBot=false) {
             if (gameFinished && p.mesh.position.z < -170) return; 
 
-            // Eğer tuşlara basılarak manuel dans ediliyorsa fizik hareketi yapma
-            let isManualDancing = !isBot && (keys['KeyG'] || keys['KeyF'] || keys['KeyJ']);
-            if (isManualDancing) {
-                makeDance(p, clock.getElapsedTime());
-                return; 
+            p.mesh.position.x += mx; p.mesh.position.z += mz;
+            
+            // Dönüş sadece yürüme varken tetiklensin (Dans rotasyonunu bozmasın)
+            if(!isBot && (keys['KeyG'] || keys['KeyF'] || keys['KeyJ'])) {
+                // Dans tuşlarına basılıyorsa yürüme animasyonunu çalıştırma
+            } else if(mx!==0 || mz!==0) {
+                p.mesh.rotation.y = Math.atan2(mx, mz);
             }
 
-            p.mesh.position.x += mx; p.mesh.position.z += mz;
-            if(mx!==0 || mz!==0) p.mesh.rotation.y = Math.atan2(mx, mz);
+            // Normal Yürüme Animasyon Kontrolü
+            let isMoving = (mx!==0 || mz!==0);
+            let checkManualDance = !isBot && (keys['KeyG'] || keys['KeyF'] || keys['KeyJ']);
 
-            if((mx!==0 || mz!==0) && p.grounded) {
+            if(isMoving && p.grounded && !checkManualDance) {
                 let speedFactor = isBot ? 10 : (keys['ShiftLeft'] ? 16 : 10);
                 let time = clock.getElapsedTime() * speedFactor;
                 p.lLeg.rotation.x = Math.sin(time)*0.6; p.rLeg.rotation.x = -Math.sin(time)*0.6;
                 p.lArm.rotation.x = -Math.sin(time)*0.6; p.rArm.rotation.x = Math.sin(time)*0.6;
                 p.lArm.rotation.z = 0; p.rArm.rotation.z = 0;
-            } else if(!p.grounded) {
+                p.mesh.rotation.z = 0; p.mesh.rotation.x = 0;
+            } else if(!p.grounded && !checkManualDance) {
                 p.lLeg.rotation.x = -0.2; p.rLeg.rotation.x = 0.2;
-            } else {
+            } else if (!checkManualDance) {
+                // Hareketsizken duruş sıfırlama
                 p.lLeg.rotation.x = p.rLeg.rotation.x = p.lArm.rotation.x = p.rArm.rotation.x = 0;
                 p.lArm.rotation.z = p.rArm.rotation.z = 0;
+                p.mesh.rotation.z = 0; p.mesh.rotation.x = 0;
             }
 
             p.velY -= 0.007; p.mesh.position.y += p.velY;
@@ -396,53 +425,56 @@
                 }
             }
 
-            // Oyun Sonu Kontrolü (Otomatik Dans)
+            // Oyun Sonu (Otomatik Bitiş Dansı)
             if(gameFinished) {
-                makeDance(p1, totalTime);
-                makeDance(bot1, totalTime);
-                makeDance(bot2, totalTime);
+                makeDance(p1, totalTime, 'END');
+                makeDance(bot1, totalTime, 'END');
+                makeDance(bot2, totalTime, 'END');
                 
-                // Botları podyuma ışınla
                 if(bot1.mesh.position.z > -170) bot1.mesh.position.set(-2, 23.5, -180);
                 if(bot2.mesh.position.z > -170) bot2.mesh.position.set(2, 23.5, -180);
                 if(p1.mesh.position.z > -170) p1.mesh.position.set(0, 23.5, -182);
             } else {
-                // Manuel Dans Tuşları Kontrolü (G, F veya J basılıysa)
-                let manualDance = keys['KeyG'] || keys['KeyF'] || keys['KeyJ'];
+                // Tuş kontrolleri ve Hız
+                let speed = keys['ShiftLeft'] ? 0.14 : 0.08;
+                let mx = 0, mz = 0;
+                
+                const forward = new THREE.Vector3(0, 0, -1).applyAxisAngle(new THREE.Vector3(0, 1, 0), camRotY).normalize();
+                const right = new THREE.Vector3(1, 0, 0).applyAxisAngle(new THREE.Vector3(0, 1, 0), camRotY).normalize();
 
-                if (manualDance) {
-                    makeDance(p1, totalTime);
-                } else {
-                    // Oyuncu normal kontrolleri aktif
-                    let speed = keys['ShiftLeft'] ? 0.14 : 0.08;
-                    let mx = 0, mz = 0;
-                    
-                    const forward = new THREE.Vector3(0, 0, -1).applyAxisAngle(new THREE.Vector3(0, 1, 0), camRotY).normalize();
-                    const right = new THREE.Vector3(1, 0, 0).applyAxisAngle(new THREE.Vector3(0, 1, 0), camRotY).normalize();
-
-                    if(keys['KeyW']) { mx += forward.x * speed; mz += forward.z * speed; }
-                    if(keys['KeyS']) { mx -= forward.x * speed; mz -= forward.z * speed; }
-                    if(keys['KeyA']) { mx -= right.x * speed; mz -= right.z * speed; }
-                    if(keys['KeyD']) { mx += right.x * speed; mz += right.z * speed; }
-                    
-                    if(joyActive) {
-                        mx += (forward.x * -joyY + right.x * joyX) * speed;
-                        mz += (forward.z * -joyY + right.z * joyX) * speed;
-                    }
-
-                    if(keys['Space'] && p1.grounded) { p1.velY = p1.jumpPower; p1.grounded = false; playSound(120, 280, 'triangle', 0.15); }
-
-                    if(p1.mesh.position.distanceTo(bootItem.position) < 1.2 && p1.powerTimer <= 0) {
-                        p1.jumpPower = 0.24; p1.powerTimer = 5.0;
-                        playSound(300, 600, 'sine', 0.3);
-                        document.getElementById('checkpoint-text').innerText = "🚀 SÜPER AYAKKABI ALINDI! (5 Sn)";
-                    }
+                // Yürüme Tuşları
+                if(keys['KeyW']) { mx += forward.x * speed; mz += forward.z * speed; }
+                if(keys['KeyS']) { mx -= forward.x * speed; mz -= forward.z * speed; }
+                if(keys['KeyA']) { mx -= right.x * speed; mz -= right.z * speed; }
+                if(keys['KeyD']) { mx += right.x * speed; mz += right.z * speed; }
+                
+                if(joyActive) {
+                    mx += (forward.x * -joyY + right.x * joyX) * speed;
+                    mz += (forward.z * -joyY + right.z * joyX) * speed;
                 }
 
-                // Fizik her halükarda çağrılıyor (Manuel dansta hareket kesilmesi için updatePhysics güncellendi)
-                updatePhysics(p1, keys['KeyW']||keys['KeyS']||keys['KeyA']||keys['KeyD']? (keys['KeyW']?0.01:0) : 0, 0, delta, false);
+                if(keys['Space'] && p1.grounded) { p1.velY = p1.jumpPower; p1.grounded = false; playSound(120, 280, 'triangle', 0.15); }
 
-                // Normal Bot AI
+                // Süper Ayakkabı Kontrolü
+                if(p1.mesh.position.distanceTo(bootItem.position) < 1.2 && p1.powerTimer <= 0) {
+                    p1.jumpPower = 0.24; p1.powerTimer = 5.0;
+                    playSound(300, 600, 'sine', 0.3);
+                    document.getElementById('checkpoint-text').innerText = "🚀 SÜPER AYAKKABI ALINDI! (5 Sn)";
+                }
+
+                // Manuel Harf Dansları Tetikleyicisi
+                if (keys['KeyG']) {
+                    makeDance(p1, totalTime, 'G');
+                } else if (keys['KeyF']) {
+                    makeDance(p1, totalTime, 'F');
+                } else if (keys['KeyJ']) {
+                    makeDance(p1, totalTime, 'J');
+                }
+
+                // Fizik hesaplamasını güncelle (Yürüme girdilerini bağımsız iletiyoruz)
+                updatePhysics(p1, mx, mz, delta, false);
+
+                // Bot Yapay Zekası
                 [bot1, bot2].forEach((bot, index) => {
                     if (bot.targetBlockIdx >= blocks.length) return;
                     
