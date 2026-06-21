@@ -6,7 +6,7 @@
     <title>hamyazparkour</title>
     <style>
         body { margin: 0; overflow: hidden; font-family: 'Courier New', Courier, monospace; user-select: none; touch-action: none; background-color: #000; }
-        #ui { position: absolute; top: 10px; left: 10px; color: #fff; background: rgba(0,0,0,0.85); padding: 12px; border-radius: 5px; border: 2px solid #555; pointer-events: none; max-width: 320px; }
+        #ui { position: absolute; top: 10px; left: 10px; color: #fff; background: rgba(0,0,0,0.85); padding: 12px; border-radius: 5px; border: 2px solid #555; pointer-events: none; max-width: 340px; }
         #stats { position: absolute; top: 10px; right: 10px; color: #fff; background: rgba(0,0,0,0.85); padding: 12px; border-radius: 5px; border: 2px solid #555; pointer-events: none; text-align: right; }
         h3 { margin: 0 0 5px 0; color: #55ff55; text-shadow: 1px 1px #000; font-size: 16px; }
         p { margin: 3px 0; font-size: 12px; }
@@ -27,9 +27,10 @@
     <div id="crosshair"></div>
 
     <div id="ui">
-        <h3>HAMYAZPARKOUR v11 [2 OYUNCU & UÇUŞ]</h3>
+        <h3>HAMYAZPARKOUR v12 [AKTİF MODLAR]</h3>
+        <p style="color: #ffcc00; font-weight: bold;">-> 2 TUŞUNA BASARAK 2 KİŞİLİK MODU AÇ! <-</p>
         <p><b>P1 (Sen):</b> W,A,S,D | Boşluk: Zıpla</p>
-        <p><b>P2 (Misafir):</b> Yön Okları | Num0 veya Sağ Shift: Zıpla</p>
+        <p><b>P2 (Misafir):</b> Yön Okları | Num0 veya Sağ Shift</p>
         <p><b>HİLE:</b> H + M + Z tuşlarına aynı anda basarak UÇ!</p>
         <p><b>DANS:</b> G, F, J tuşlarına basılı tut!</p>
         <hr style="border-color: #444;">
@@ -39,7 +40,7 @@
     <div id="stats">
         <h3>LİDERLİK</h3>
         <p>MAHMUT 1 (SEN): <span id="timer-val" class="stat-val">0</span></p>
-        <p style="color:#55ff55;">MAHMUT 4 (P2): <span id="p2-val" class="stat-val" style="color:#55ff55;">0</span></p>
+        <p id="p2-score-row" style="color:#55ff55; display: none;">MAHMUT 4 (P2): <span id="p2-val" class="stat-val" style="color:#55ff55;">0</span></p>
         <p style="color:#ff4444;">MAHMUT 2 (BOT): <span id="bot1-val" class="stat-val" style="color:#ff4444;">0</span></p>
         <p style="color:#bb44ff;">MAHMUT 3 (BOT): <span id="bot2-val" class="stat-val" style="color:#bb44ff;">0</span></p>
     </div>
@@ -112,7 +113,7 @@
         const cloth1   = createPixelTexture('#2980b9', '#3498db', '#1f6391'); 
         const cloth2   = createPixelTexture('#c0392b', '#e74c3c', '#962d22'); 
         const cloth3   = createPixelTexture('#8e44ad', '#9b59b6', '#6c3483'); 
-        const cloth4   = createPixelTexture('#27ae60', '#2ecc71', '#1e8449'); // P2 Yeşil Kıyafet
+        const cloth4   = createPixelTexture('#27ae60', '#2ecc71', '#1e8449'); 
         const pantsTex = createPixelTexture('#2c3e50', '#34495e', '#1a252f');
 
         // --- 4. HARİTA İNŞASI ---
@@ -225,14 +226,36 @@
             return { mesh: group, lLeg:lLeg, rLeg:rLeg, lArm:lArm, rArm:rArm, velY:0, grounded:true, deaths:0, cp:{x:0,y:0,z:20}, jumpPower:0.16, powerTimer:0, targetBlockIdx: 0, tag: name };
         }
 
-        const p1 = createCharacter("Mahmut 1 (Sen)", cloth1, false); p1.mesh.position.set(-1, 0, 20);
-        const p2 = createCharacter("Mahmut 4 (P2)", cloth4, true); p2.mesh.position.set(1, 0, 20); // 2. KULLANICI EKLENDİ
+        const p1 = createCharacter("Mahmut 1 (Sen)", cloth1, false); p1.mesh.position.set(0, 0, 20);
+        const p2 = createCharacter("Mahmut 4 (P2)", cloth4, true); p2.mesh.position.set(5, 0, 14); // P2 Başta kenarda bekleyecek
         const bot1 = createCharacter("Mahmut 2", cloth2, false); bot1.mesh.position.set(-4, 0, 18);
         const bot2 = createCharacter("Mahmut 3", cloth3, false); bot2.mesh.position.set(4, 0, 18);
 
+        // --- DINAMIK MOD DURUMU ---
+        let coOpModeActive = false; // Başlangıçta 2 kişilik mod KAPALI (Kamera sadece P1'de)
+
         // --- INPUTS & CONTROLS ---
         const keys = {};
-        window.addEventListener('keydown', e => { if(audioCtx.state==='suspended') audioCtx.resume(); keys[e.code]=true; });
+        window.addEventListener('keydown', e => { 
+            if(audioCtx.state==='suspended') audioCtx.resume(); 
+            keys[e.code]=true; 
+
+            // 'Digit2' (Üstteki 2 Tuşu) ile iki kişilik modu açıp kapatma
+            if(e.code === 'Digit2') {
+                coOpModeActive = !coOpModeActive;
+                if(coOpModeActive) {
+                    p2.mesh.position.set(p1.mesh.position.x + 1.5, p1.mesh.position.y, p1.mesh.position.z); // P1'in yanına ışınla
+                    p2.cp = {x: p1.cp.x, y: p1.cp.y, z: p1.cp.z}; // Checkpoint eşitle
+                    document.getElementById('p2-score-row').style.display = 'block';
+                    document.getElementById('checkpoint-text').innerText = "2 Kişilik Mod Aktif Edildi! 🎮";
+                    playSound(200, 400, 'sine', 0.2);
+                } else {
+                    document.getElementById('p2-score-row').style.display = 'none';
+                    document.getElementById('checkpoint-text').innerText = "Tek Kişilik Moda Geçildi.";
+                    playSound(400, 200, 'sine', 0.2);
+                }
+            }
+        });
         window.addEventListener('keyup', e => keys[e.code]=false);
 
         let camRotX = 0.2, camRotY = 0;
@@ -272,16 +295,14 @@
         function updatePhysics(p, mx, mz, delta, isBot=false) {
             if (gameFinished && p.mesh.position.z < -170) return; 
 
-            // HMZ UÇUŞ HİLESİ KONTROLÜ (Sadece p1 için)
+            // HMZ UÇUŞ HİLESİ KONTROLÜ
             let isFlying = (p === p1) && keys['KeyH'] && keys['KeyM'] && keys['KeyZ'];
 
             if (isFlying) {
-                p.mesh.position.y += 0.15; // Yerçekimsiz yukarı uçuş
-                p.mesh.position.x += mx;
-                p.mesh.position.z += mz;
+                p.mesh.position.y += 0.15; 
+                p.mesh.position.x += mx; p.mesh.position.z += mz;
                 p.velY = 0; p.grounded = true;
-                p.lLeg.rotation.x = Math.sin(clock.getElapsedTime()*10)*0.5;
-                p.rLeg.rotation.x = -Math.sin(clock.getElapsedTime()*10)*0.5;
+                p.lLeg.rotation.x = Math.sin(clock.getElapsedTime()*10)*0.5; p.rLeg.rotation.x = -Math.sin(clock.getElapsedTime()*10)*0.5;
                 return;
             }
 
@@ -398,33 +419,39 @@
 
                 if(keys['Space'] && p1.grounded) { p1.velY = p1.jumpPower; p1.grounded = false; playSound(120, 280, 'triangle', 0.15); }
 
-                // P2 (YÖN OKLARI) Hareket Hesapları
-                let speed2 = 0.08;
+                // P2 Hareket Hesapları (Sadece Co-Op Mod Aktifken çalışır)
                 let mx2 = 0, mz2 = 0;
-                if(keys['ArrowUp']) { mx2 += forward.x * speed2; mz2 += forward.z * speed2; }
-                if(keys['ArrowDown']) { mx2 -= forward.x * speed2; mz2 -= forward.z * speed2; }
-                if(keys['ArrowLeft']) { mx2 -= right.x * speed2; mz2 -= right.z * speed2; }
-                if(keys['ArrowRight']) { mx2 += right.x * speed2; mz2 += right.z * speed2; }
+                if(coOpModeActive) {
+                    let speed2 = 0.08;
+                    if(keys['ArrowUp']) { mx2 += forward.x * speed2; mz2 += forward.z * speed2; }
+                    if(keys['ArrowDown']) { mx2 -= forward.x * speed2; mz2 -= forward.z * speed2; }
+                    if(keys['ArrowLeft']) { mx2 -= right.x * speed2; mz2 -= right.z * speed2; }
+                    if(keys['ArrowRight']) { mx2 += right.x * speed2; mz2 += right.z * speed2; }
 
-                // NumPad 0 veya Sağ Shift Zıplama tetiklemesi
-                if((keys['Numpad0'] || keys['ShiftRight']) && p2.grounded) { p2.velY = p2.jumpPower; p2.grounded = false; playSound(125, 285, 'triangle', 0.15); }
+                    if((keys['Numpad0'] || keys['ShiftRight']) && p2.grounded) { p2.velY = p2.jumpPower; p2.grounded = false; playSound(125, 285, 'triangle', 0.15); }
+                }
 
                 // Süper Ayakkabı toplama
                 if(p1.mesh.position.distanceTo(bootItem.position) < 1.2 && p1.powerTimer <= 0) {
                     p1.jumpPower = 0.24; p1.powerTimer = 5.0; playSound(300, 600, 'sine', 0.3);
                 }
-                if(p2.mesh.position.distanceTo(bootItem.position) < 1.2 && p2.powerTimer <= 0) {
+                if(coOpModeActive && p2.mesh.position.distanceTo(bootItem.position) < 1.2 && p2.powerTimer <= 0) {
                     p2.jumpPower = 0.24; p2.powerTimer = 5.0; playSound(300, 600, 'sine', 0.3);
                 }
 
-                // Manuel Harf Dansları Tetikleyicisi (Sadece P1 dans eder)
+                // Manuel Harf Dansları
                 if (keys['KeyG']) makeDance(p1, totalTime, 'G');
                 else if (keys['KeyF']) makeDance(p1, totalTime, 'F');
                 else if (keys['KeyJ']) makeDance(p1, totalTime, 'J');
 
                 // Fizikleri Uygula
                 updatePhysics(p1, mx1, mz1, delta, false);
-                updatePhysics(p2, mx2, mz2, delta, false);
+                if(coOpModeActive) {
+                    updatePhysics(p2, mx2, mz2, delta, false);
+                } else {
+                    // Mod kapalıyken yerçekimi p2'yi etkilemesin, sabit dursun
+                    p2.velY = 0; p2.grounded = true;
+                }
 
                 // Bot Yapay Zekaları
                 [bot1, bot2].forEach((bot, index) => {
@@ -450,16 +477,32 @@
                 });
             }
 
-            // AKILLI İKİ KİŞİLİK KAMERA TAKİBİ (P1 ve P2'nin Tam Ortasına Odaklanır)
-            const midX = (p1.mesh.position.x + p2.mesh.position.x) / 2;
-            const midY = (p1.mesh.position.y + p2.mesh.position.y) / 2;
-            const midZ = (p1.mesh.position.z + p2.mesh.position.z) / 2;
+            // --- DİNAMİK KAMERA MOD SİSTEMİ ---
+            let targetX, targetY, targetZ;
+            let lookAtX, lookAtY, lookAtZ;
 
-            const tx = midX - Math.sin(camRotY)*Math.cos(camRotX)*9;
-            const ty = midY + 3.0 + Math.sin(camRotX)*9;
-            const tz = midZ - Math.cos(camRotY)*Math.cos(camRotX)*9;
-            camera.position.set(tx, ty, tz);
-            camera.lookAt(midX, midY + 1.0, midZ);
+            if (coOpModeActive) {
+                // 2 Kişilik Mod Aktifse: Kamera İkisinin Ortasına Odaklanır
+                const midX = (p1.mesh.position.x + p2.mesh.position.x) / 2;
+                const midY = (p1.mesh.position.y + p2.mesh.position.y) / 2;
+                const midZ = (p1.mesh.position.z + p2.mesh.position.z) / 2;
+
+                targetX = midX - Math.sin(camRotY)*Math.cos(camRotX)*9;
+                targetY = midY + 3.0 + Math.sin(camRotX)*9;
+                targetZ = midZ - Math.cos(camRotY)*Math.cos(camRotX)*9;
+                
+                lookAtX = midX; lookAtY = midY + 1.0; lookAtZ = midZ;
+            } else {
+                // Tek Kişilik Modda: Kamera Sadece Sana (P1) Odaklanır, Yağ Gibi Akar!
+                targetX = p1.mesh.position.x - Math.sin(camRotY)*Math.cos(camRotX)*7;
+                targetY = p1.mesh.position.y + 2.0 + Math.sin(camRotX)*7;
+                targetZ = p1.mesh.position.z - Math.cos(camRotY)*Math.cos(camRotX)*7;
+
+                lookAtX = p1.mesh.position.x; lookAtY = p1.mesh.position.y + 1.0; lookAtZ = p1.mesh.position.z;
+            }
+
+            camera.position.set(targetX, targetY, targetZ);
+            camera.lookAt(lookAtX, lookAtY, lookAtZ);
 
             renderer.render(scene, camera);
         }
