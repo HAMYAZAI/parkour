@@ -13,11 +13,9 @@
         .stat-val { color: #ffcc00; font-weight: bold; }
         
         #crosshair { position: absolute; top: 50%; left: 50%; width: 10px; height: 10px; background: rgba(255,255,255,0.4); border-radius: 50%; transform: translate(-50%, -50%); pointer-events: none; }
-
-        /* GOL EKRANI */
         #goal-overlay { position: absolute; top: 30%; left: 50%; transform: translate(-50%, -50%); font-size: 48px; color: #ffcc00; font-weight: bold; background: rgba(0,0,0,0.8); padding: 20px 40px; border: 4px solid #fff; border-radius: 10px; display: none; z-index: 100; text-shadow: 3px 3px #ff0000; text-align: center; pointer-events: none; }
 
-        /* MOBİL KONTROLLER */
+        /* MOBİL */
         #joystick-zone { position: absolute; bottom: 40px; left: 40px; width: 120px; height: 120px; background: rgba(255,255,255,0.15); border: 3px solid rgba(255,255,255,0.5); border-radius: 50%; display: none; touch-action: none; z-index: 20; }
         #joystick-stick { position: absolute; top: 35px; left: 35px; width: 50px; height: 50px; background: rgba(255,255,255,0.7); border-radius: 50%; pointer-events: none; }
         #jump-btn { position: absolute; bottom: 50px; right: 40px; width: 90px; height: 90px; background: rgba(255,255,255,0.25); border: 3px solid rgba(255,255,255,0.6); border-radius: 50%; display: none; color: white; font-weight: bold; text-align: center; line-height: 90px; font-size: 18px; touch-action: none; z-index: 20; }
@@ -30,22 +28,22 @@
     <div id="goal-overlay">⚽ GOOOL! ⚽</div>
 
     <div id="ui">
-        <h3>HAMYAZPARKOUR v14</h3>
+        <h3>HAMYAZPARKOUR v15</h3>
         <p style="color: #ffcc00; font-weight: bold;">-> PC: 2 TUŞU İLE KUZENLE OYNA <-</p>
         <p><b>P1:</b> W,A,S,D / Mobil Joystick</p>
         <p><b>P2:</b> Yön Okları | Num0 veya Sağ Shift</p>
-        <p><b>SAHA:</b> Başlangıcın SAĞ TARAFINDA! ⚽</p>
+        <p><b>SAHA:</b> Başlangıç adasının hemen SAĞINDA birleşik!</p>
         <p><b>HİLE:</b> H + M + Z ile UÇ!</p>
         <hr style="border-color: #444;">
-        <p id="checkpoint-text" style="color: #55ff55; font-weight: bold;">Saha Yana Taşındı!</p>
+        <p id="checkpoint-text" style="color: #55ff55; font-weight: bold;">Saha Adaya Birleştirildi!</p>
     </div>
 
     <div id="stats">
         <h3>SKORBOARD</h3>
         <p>P1 GOL: <span id="p1-goals" class="stat-val" style="color:#55ff55;">0</span> | ÖLÜM: <span id="timer-val" class="stat-val">0</span></p>
         <p id="p2-score-row" style="color:#55ff55; display: none;">P2 GOL: <span id="p2-goals" class="stat-val" style="color:#55ff55;">0</span> | ÖLÜM: <span id="p2-val" class="stat-val" style="color:#55ff55;">0</span></p>
-        <p style="color:#ff4444;">MAHMUT 2 (BOT): <span id="bot1-val" class="stat-val">0</span></p>
-        <p style="color:#bb44ff;">MAHMUT 3 (BOT): <span id="bot2-val" class="stat-val">0</span></p>
+        <p style="color:#ff4444;">MAHMUT 2 (BOT): P: <span id="bot1-p" class="stat-val">0</span> | Ö: <span id="bot1-val" class="stat-val">0</span></p>
+        <p style="color:#bb44ff;">MAHMUT 3 (BOT): P: <span id="bot2-p" class="stat-val">0</span> | Ö: <span id="bot2-val" class="stat-val">0</span></p>
     </div>
 
     <div id="joystick-zone"><div id="joystick-stick"></div></div>
@@ -66,7 +64,7 @@
             });
         }
 
-        // --- 1. SES SENTEZLEYİCİ ---
+        // --- 1. AUDIO ---
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         function playSound(f1, f2, type, d) {
             try {
@@ -79,7 +77,7 @@
             } catch(e){}
         }
 
-        // --- 2. SAHNE VE AYDINLATMA ---
+        // --- 2. SCENE ---
         const scene = new THREE.Scene(); scene.background = new THREE.Color(0xaaccff);
         const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
         const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -88,7 +86,7 @@
         const ambientLight = new THREE.AmbientLight(0xffffff, 0.75); scene.add(ambientLight);
         const dirLight = new THREE.DirectionalLight(0xfff5ea, 0.7); dirLight.position.set(40, 80, 30); scene.add(dirLight);
 
-        // --- 3. DOKU ÜRETECİ ---
+        // --- 3. TEXTURES ---
         function createPixelTexture(base, noise, shadow) {
             const canvas = document.createElement('canvas'); canvas.width = 64; canvas.height = 64;
             const ctx = canvas.getContext('2d'); ctx.fillStyle = base; ctx.fillRect(0, 0, 64, 64);
@@ -116,7 +114,7 @@
         const cloth4   = createPixelTexture('#27ae60', '#2ecc71', '#1e8449'); 
         const pantsTex = createPixelTexture('#2c3e50', '#34495e', '#1a252f');
 
-        // --- 4. HARİTA İNŞASI ---
+        // --- 4. MAP BUILD ---
         const blocks = [];
         let gameFinished = false; 
 
@@ -131,33 +129,35 @@
             blocks.push(b); return b;
         }
 
-        // Ana Temiz Başlangıç Alanı (Parkur için)
+        // Ana Başlangıç Alanı (Parkur başlangıcı)
+        // Merkez X=0, Genişlik=16 -> Sağ sınırı X = 8'de bitiyor.
         createBlock(0, -1, 15, 16, 2, 20, grassTex); 
 
-        // FUTBOL SAHASI (BAŞLANGICIN YANINA - SAĞ TARAFA TAŞINDI: X = 45)
-        const footballSahaX = 45;
+        // FUTBOL SAHASI - ADAYA TAM YAPIŞIK! 
+        // Sol sınırı X = 8 olsun ki adaya sıfır birleşsin. Genişlik=26 ise Merkez X = 8 + 13 = 21 olur.
+        const footballSahaX = 21;
         const footballSahaZCenter = 15;
-        const footballSahaLength = 40;
+        const footballSahaLength = 20; // Başlangıç adasıyla aynı hizada (Z: 5 ile 25 arası)
         const footballSahaWidth = 26;
         
-        // Futbol Zemin Platformu
         createBlock(footballSahaX, -1, footballSahaZCenter, footballSahaWidth, 2, footballSahaLength, grassTex); 
 
-        // Kaleleri Yeni Yan Sahaya Yerleştirme
+        // Kaleler
         function buildGoal(xPos, zPos) {
             const pMat = new THREE.MeshLambertMaterial({ color: 0xffffff });
             const topPole = new THREE.Mesh(new THREE.BoxGeometry(8, 0.3, 0.3), pMat); topPole.position.set(xPos, 3, zPos); scene.add(topPole);
             const leftPole = new THREE.Mesh(new THREE.BoxGeometry(0.3, 3, 0.3), pMat); leftPole.position.set(xPos - 4, 1.5, zPos); scene.add(leftPole);
             const rightPole = new THREE.Mesh(new THREE.BoxGeometry(0.3, 3, 0.3), pMat); rightPole.position.set(xPos + 4, 1.5, zPos); scene.add(rightPole);
         }
-        buildGoal(footballSahaX, footballSahaZCenter + (footballSahaLength / 2)); // Güney Kalesi (Z = 35)
-        buildGoal(footballSahaX, footballSahaZCenter - (footballSahaLength / 2)); // Kuzey Kalesi (Z = -5)
+        buildGoal(footballSahaX, footballSahaZCenter + (footballSahaLength / 2)); // Güney Kalesi (Z = 25)
+        buildGoal(footballSahaX, footballSahaZCenter - (footballSahaLength / 2)); // Kuzey Kalesi (Z = 5)
 
-        // Parkur Parçaları (Eski düzen bozulmadı)
-        createBlock(0, 0, -2, 4, 2, 4, stoneTex);
-        createBlock(0, 1, -9, 2.5, 2, 2.5, stoneTex);
-        createBlock(3, 2, -15, 2.5, 2, 2.5, stoneTex);
-        createBlock(0, 3, -22, 4, 2, 4, cpTex, true); 
+        // PARKUR BLOKLARI (Botlar burayı takip edecek, indeks sırası önemli!)
+        const parkurStartIndex = blocks.length; // Parkur elemanlarının başlangıcı
+        createBlock(0, 0, -2, 4, 2, 4, stoneTex); // Blok 0
+        createBlock(0, 1, -9, 2.5, 2, 2.5, stoneTex); // Blok 1
+        createBlock(3, 2, -15, 2.5, 2, 2.5, stoneTex); // Blok 2
+        createBlock(0, 3, -22, 4, 2, 4, cpTex, true); // Blok 3
 
         const movingBlock1 = createBlock(-3, 4, -29, 2.5, 1, 2.5, stoneTex); movingBlock1.isMoving = true; movingBlock1.moveType = 'side';
         createBlock(2, 5, -36, 2.5, 2, 2.5, stoneTex);
@@ -174,15 +174,16 @@
         createBlock(2, 15.5, -109, 1.5, 2, 1.5, stoneTex);
         createBlock(0, 17.5, -124, 4, 2, 4, cpTex, true); 
         createBlock(0, 22.5, -145, 15, 2, 15, diamondTex, false, true); 
+
+        // LAVA TENEKEMİZ
         createBlock(0, -25, -50, 2000, 1, 2000, lavaTex);
 
-        // --- 5. FUTBOL TOPU SİSTEMİ ---
+        // --- 5. FUTBOL TOPU ---
         const ballGeo = new THREE.SphereGeometry(0.5, 16, 16);
         const ballMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.2 });
         const ballWire = new THREE.Mesh(ballGeo, new THREE.MeshBasicMaterial({color: 0x000000, wireframe: true}));
         const ball = new THREE.Group(); ball.add(new THREE.Mesh(ballGeo, ballMat)); ball.add(ballWire);
         
-        // Top yeni yan sahanın tam ortasında doğuyor
         function resetBall() {
             ball.position.set(footballSahaX, 0.5, footballSahaZCenter);
             ballVelX = 0; ballVelZ = 0;
@@ -192,7 +193,7 @@
         resetBall();
         scene.add(ball);
 
-        // --- 6. KARAKTER FABRİKASI ---
+        // --- 6. CHARACTERS ---
         function createCharacter(name, shirtTex, isP2=false) {
             const group = new THREE.Group();
             const body = new THREE.Mesh(new THREE.BoxGeometry(0.8, 1.2, 0.4), new THREE.MeshLambertMaterial({ map: shirtTex })); body.position.y = 1.0; group.add(body);
@@ -221,16 +222,18 @@
             scene.add(group);
             return { 
                 mesh: group, lLeg:lLeg, rLeg:rLeg, lArm:lArm, rArm:rArm, 
-                velY:0, grounded:true, deaths:0, goals:0, cp:{x:0,y:0,z:20}, 
-                jumpPower:0.16, targetBlockIdx: 0, tag: name, jumpCount: 0,
+                velY:0, grounded:true, deaths:0, goals:0, cp:{x:0,y:0,z:15}, 
+                jumpPower:0.16, targetBlockIdx: parkurStartIndex, tag: name, jumpCount: 0,
                 danceTimer: 0 
             };
         }
 
-        const p1 = createCharacter("Mahmut 1 (Sen)", cloth1, false); p1.mesh.position.set(-2, 0, 20);
-        const p2 = createCharacter("Mahmut 4 (P2)", cloth4, true); p2.mesh.position.set(2, 0, 20); 
-        const bot1 = createCharacter("Mahmut 2", cloth2, false); bot1.mesh.position.set(-6, 0, 18);
-        const bot2 = createCharacter("Mahmut 3", cloth3, false); bot2.mesh.position.set(6, 0, 18);
+        const p1 = createCharacter("Mahmut 1 (Sen)", cloth1, false); p1.mesh.position.set(-2, 0, 15);
+        const p2 = createCharacter("Mahmut 4 (P2)", cloth4, true); p2.mesh.position.set(2, 0, 15); 
+        
+        // Botları direkt parkur başlangıç adasında konumlandıralım
+        const bot1 = createCharacter("Mahmut 2", cloth2, false); bot1.mesh.position.set(-4, 0, 12);
+        const bot2 = createCharacter("Mahmut 3", cloth3, false); bot2.mesh.position.set(4, 0, 12);
 
         let coOpModeActive = false; 
 
@@ -247,11 +250,10 @@
             }
         }
 
-        // --- INPUTS & CONTROLS ---
+        // --- CONTROLS ---
         const keys = {};
         window.addEventListener('keydown', e => { 
             if(audioCtx.state==='suspended') audioCtx.resume(); 
-            
             if (e.code === 'Space' && !keys['Space'] && p1.danceTimer <= 0) {
                 if (p1.grounded) { p1.velY = p1.jumpPower; p1.grounded = false; p1.jumpCount = 1; playSound(120, 280, 'triangle', 0.15); }
                 else if (p1.jumpCount === 1) { p1.velY = p1.jumpPower * 0.95; p1.jumpCount = 2; playSound(240, 480, 'sine', 0.12); }
@@ -273,7 +275,7 @@
             }
         });
 
-        // MOBİL DOKUNMA
+        // MOBIL CONTROLS
         let joyTouchId = null; let camTouchId = null;
         let joyStartX = 0, joyStartY = 0; let joyMoveX = 0, joyMoveY = 0;
         let prevCamTouchX = 0, prevCamTouchY = 0;
@@ -325,7 +327,7 @@
             p.lLeg.rotation.x = Math.sin(time*25)*0.5; p.rLeg.rotation.x = -Math.sin(time*25)*0.5;
         }
 
-        // --- 7. FİZİK VE DÖNGÜ GÜNCELLEMESİ ---
+        // --- 7. PHYSICS & TICK LOOP ---
         const clock = new THREE.Clock();
 
         function updatePhysics(p, mx, mz, delta, isBot=false) {
@@ -380,7 +382,7 @@
             }
             if(!hit) p.grounded = false;
 
-            // TOP KONTROLÜ (Yan sahada topa çarpma mekaniği)
+            // KICK THE BALL
             let distToBall = p.mesh.position.distanceTo(ball.position);
             if(distToBall < 1.1) {
                 let diffX = ball.position.x - p.mesh.position.x;
@@ -392,10 +394,16 @@
                 playSound(350, 180, 'sine', 0.08);
             }
 
+            // FALL OUT / RESPAWN
             if(p.mesh.position.y < -15) {
                 p.deaths++;
                 if(p === p1) document.getElementById('timer-val').innerText = p.deaths;
                 if(p === p2) document.getElementById('p2-val').innerText = p.deaths;
+                if(isBot) {
+                    p.targetBlockIdx = parkurStartIndex; // Bot ölünce parkura baştan başlasın
+                    if(p === bot1) document.getElementById('bot1-val').innerText = p.deaths;
+                    if(p === bot2) document.getElementById('bot2-val').innerText = p.deaths;
+                }
                 p.mesh.position.set(p.cp.x, p.cp.y, p.cp.z); p.velY = 0; p.grounded = true;
             }
         }
@@ -413,7 +421,7 @@
                 }
             }
 
-            // --- BALL PHYSICS (YAN SAHA İÇİNDE SINIRLANDIRMA) ---
+            // --- BALL LOGIC ---
             ball.position.x += ballVelX;
             ball.position.z += ballVelZ;
             ballVelX *= 0.97; ballVelZ *= 0.97; 
@@ -421,7 +429,7 @@
             ball.rotation.x += ballVelZ * 0.5;
             ball.rotation.z -= ballVelX * 0.5;
 
-            // Sahanın kendi sınır korumaları (X = 45 merkezli)
+            // Saha Duvar Sınırları (Merkez X = 21, Genişlik = 26 -> 8 ile 34 arası)
             let minSahaX = footballSahaX - (footballSahaWidth / 2) + 0.5;
             let maxSahaX = footballSahaX + (footballSahaWidth / 2) - 0.5;
             let minSahaZ = footballSahaZCenter - (footballSahaLength / 2);
@@ -431,36 +439,28 @@
             if(ball.position.x < minSahaX) { ball.position.x = minSahaX; ballVelX *= -0.8; }
             if(ball.position.z > maxSahaZ) { ball.position.z = maxSahaZ; ballVelZ *= -0.8; }
 
-            // GOL ÇİZGİSİ KONTROLLERİ (Yeni koordinatlara göre)
-            // Kuzey Kalesi Golü (z <= minSahaZ)
+            // GOL SİSTEMİ
             if(ball.position.z <= minSahaZ && ball.position.x >= footballSahaX - 4 && ball.position.x <= footballSahaX + 4) {
                 if(lastToucher) {
                     lastToucher.goals++; lastToucher.danceTimer = 5.0;
                     if(lastToucher === p1) document.getElementById('p1-goals').innerText = p1.goals;
                     if(lastToucher === p2) document.getElementById('p2-goals').innerText = p2.goals;
-                    
                     const overlay = document.getElementById('goal-overlay');
                     overlay.innerText = `⚽ GOOOL! - ${lastToucher.tag.split(" ")[0]} ⚽`; overlay.style.display = 'block';
                     setTimeout(() => overlay.style.display = 'none', 3000);
                 }
                 playSound(150, 600, 'sawtooth', 0.6); resetBall();
             }
-            // Güney Kalesi Golü (z >= maxSahaZ)
             else if(ball.position.z >= maxSahaZ && ball.position.x >= footballSahaX - 4 && ball.position.x <= footballSahaX + 4) {
                 if(lastToucher) {
                     lastToucher.goals++; lastToucher.danceTimer = 5.0;
                     if(lastToucher === p1) document.getElementById('p1-goals').innerText = p1.goals;
                     if(lastToucher === p2) document.getElementById('p2-goals').innerText = p2.goals;
-                    
                     const overlay = document.getElementById('goal-overlay');
                     overlay.innerText = `⚽ GOOOL! - ${lastToucher.tag.split(" ")[0]} ⚽`; overlay.style.display = 'block';
                     setTimeout(() => overlay.style.display = 'none', 3000);
                 }
                 playSound(150, 600, 'sawtooth', 0.6); resetBall();
-            }
-            // Beklenmedik bir şekilde dışarı çıkarsa sıfırla
-            else if(ball.position.z < minSahaZ - 0.5) {
-                resetBall();
             }
 
             if(gameFinished) {
@@ -494,26 +494,48 @@
                 updatePhysics(p1, mx1, mz1, delta, false);
                 if(coOpModeActive) updatePhysics(p2, mx2, mz2, delta, false);
 
-                // Botlar (Sadece kendi kulvarlarında parkur yapıyorlar)
+                // BOT KONTROLLERİ (Akıllı Parkur Zekası Fixlendi)
                 [bot1, bot2].forEach((bot, index) => {
                     if (bot.targetBlockIdx >= blocks.length) return;
+                    
                     let currentPos = bot.mesh.position;
                     let targetBlock = blocks[bot.targetBlockIdx];
-                    let targetX = targetBlock.mesh.position.x + (index === 0 ? -0.4 : 0.4);
+                    
+                    // Eğer hedef blok lava ise (en son eklenen dev blok) pas geçsin
+                    if(targetBlock.width > 500) { bot.targetBlockIdx++; return; }
+
+                    // Botların sağa sola hizalanması
+                    let targetX = targetBlock.mesh.position.x + (index === 0 ? -0.5 : 0.5);
                     let targetZ = targetBlock.mesh.position.z;
-                    let dx = targetX - currentPos.x; let dz = targetZ - currentPos.z;
+                    
+                    let dx = targetX - currentPos.x; 
+                    let dz = targetZ - currentPos.z;
                     let dist2D = Math.sqrt(dx*dx + dz*dz);
+                    
                     let bmx = 0, bmz = 0;
 
-                    if(dist2D > 0.4) {
-                        bmx = (dx / dist2D) * 0.055; bmz = (dz / dist2D) * 0.055;
-                        if(bot.grounded && dist2D < 4.0) { bot.velY = bot.jumpPower; bot.grounded = false; }
-                    } else { if(bot.grounded) bot.targetBlockIdx++; }
+                    if(dist2D > 0.3) {
+                        bmx = (dx / dist2D) * 0.05; 
+                        bmz = (dz / dist2D) * 0.05;
+                        
+                        // Önündeki blok daha yukarıdaysa zıplasın
+                        if(bot.grounded && (targetBlock.topY > currentPos.y || dist2D < 3.5)) { 
+                            bot.velY = bot.jumpPower; 
+                            bot.grounded = false; 
+                        }
+                    } else { 
+                        if(bot.grounded) {
+                            bot.targetBlockIdx++; 
+                            // Ekranda kaçıncı blokta olduklarını güncelleyelim
+                            if(bot === bot1) document.getElementById('bot1-p').innerText = (bot.targetBlockIdx - parkurStartIndex);
+                            if(bot === bot2) document.getElementById('bot2-p').innerText = (bot.targetBlockIdx - parkurStartIndex);
+                        }
+                    }
                     updatePhysics(bot, bmx, bmz, delta, true);
                 });
             }
 
-            // CAMERA
+            // CAMERA CAMERA CAMERA
             let targetX, targetY, targetZ;
             let lookAtX, lookAtY, lookAtZ;
 
