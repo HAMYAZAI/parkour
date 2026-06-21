@@ -5,13 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>hamyazparkour</title>
     <style>
-        body { margin: 0; overflow: hidden; font-family: 'Courier New', Courier, monospace; user-select: none; touch-action: none; }
+        body { margin: 0; overflow: hidden; font-family: 'Courier New', Courier, monospace; user-select: none; touch-action: none; background-color: #000; }
         #ui { position: absolute; top: 10px; left: 10px; color: #fff; background: rgba(0,0,0,0.85); padding: 12px; border-radius: 5px; border: 2px solid #555; pointer-events: none; max-width: 300px; }
         #stats { position: absolute; top: 10px; right: 10px; color: #fff; background: rgba(0,0,0,0.85); padding: 12px; border-radius: 5px; border: 2px solid #555; pointer-events: none; text-align: right; }
         h3 { margin: 0 0 5px 0; color: #55ff55; text-shadow: 1px 1px #000; font-size: 16px; }
         p { margin: 3px 0; font-size: 12px; }
         .stat-val { color: #ffcc00; font-weight: bold; }
         
+        /* Ekran ortasına odaklanma işareti */
+        #crosshair { position: absolute; top: 50%; left: 50%; width: 10px; height: 10px; background: rgba(255,255,255,0.4); border-radius: 50%; transform: translate(-50%, -50%); pointer-events: none; }
+
         /* MOBIL DÜĞMELERİ */
         #joystick-zone { position: absolute; bottom: 40px; left: 40px; width: 120px; height: 120px; background: rgba(255,255,255,0.1); border: 3px solid rgba(255,255,255,0.4); border-radius: 50%; display: none; touch-action: none; }
         #joystick-stick { position: absolute; top: 35px; left: 35px; width: 50px; height: 50px; background: rgba(255,255,255,0.6); border-radius: 50%; }
@@ -21,12 +24,14 @@
 </head>
 <body>
 
+    <div id="crosshair"></div>
+
     <div id="ui">
-        <h3>HAMYAZPARKOUR v8 [MULTIPLAYER & MOBIL]</h3>
-        <p><b>PC:</b> W,A,S,D | MOUSE (Sağ tık basılı tut çevir)</p>
-        <p><b>MOBİL:</b> Ekranı kaydırarak bak, Sol Kolla Yürü</p>
+        <h3>HAMYAZPARKOUR v9 [DÜZELTİLMİŞ]</h3>
+        <p><b>PC:</b> Ekrana Tıkla -> Fareyi Oynatarak Bak | W,A,S,D ile Yürü</p>
+        <p><b>KİLİTTEN ÇIKMA:</b> ESC</p>
         <hr style="border-color: #444;">
-        <p id="checkpoint-text" style="color: #55ff55; font-weight: bold;">Lobi: İnsanlarla Tanış veya Parkura Başla!</p>
+        <p id="checkpoint-text" style="color: #55ff55; font-weight: bold;">Ekrana bir kez tıkla ve oyna!</p>
     </div>
 
     <div id="stats">
@@ -41,9 +46,18 @@
 
     <script>
         // Mobil Kontrol tespiti
-        if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
+        const isMobile = ('ontouchstart' in window || navigator.maxTouchPoints > 0);
+        if (isMobile) {
             document.getElementById('joystick-zone').style.display = 'block';
             document.getElementById('jump-btn').style.display = 'block';
+            document.getElementById('crosshair').style.display = 'none';
+        }
+
+        // --- PC İÇİN POINTER LOCK (MOUSE KİLİTLEME) ---
+        if(!isMobile) {
+            document.body.addEventListener('click', () => {
+                document.body.requestPointerLock();
+            });
         }
 
         // --- 1. SES SENTEZLEYİCİ ---
@@ -91,7 +105,6 @@
         const lavaTex  = createPixelTexture('#e74c3c', '#e67e22', '#c0392b');
         const diamondTex = createPixelTexture('#1abc9c', '#2ecc71', '#16a085');
 
-        // Giyim renkleri (Mavi=Sen, Kırmızı=Bot1, Mor=Bot2)
         const skinTex  = createPixelTexture('#f3c19f', '#faebd7', '#e0aa85');
         const cloth1   = createPixelTexture('#2980b9', '#3498db', '#1f6391'); 
         const cloth2   = createPixelTexture('#c0392b', '#e74c3c', '#962d22'); 
@@ -107,21 +120,20 @@
             blocks.push(b); return b;
         }
 
-        // BÜYÜK YEŞİLLİK ALAN (LOBİ MEYDANI)
+        // BÜYÜK YEŞİLLİK MEYDANI
         createBlock(0, -1, 15, 30, 2, 30, grassTex); 
 
-        // SÜPER AYAKKABI (GÜÇLENDİRİCİ ITEM)
+        // SÜPER AYAKKABI
         const bootGeo = new THREE.BoxGeometry(0.6, 0.6, 0.6);
         const bootMat = new THREE.MeshBasicMaterial({ color: 0xffcc00, wireframe: true });
         const bootItem = new THREE.Mesh(bootGeo, bootMat); bootItem.position.set(0, 1, 15); scene.add(bootItem);
 
-        // PARKUR DİZİLİMİ
+        // PARKUR
         createBlock(0, 0, -2, 4, 2, 4, stoneTex);
         createBlock(0, 1, -9, 2.5, 2, 2.5, stoneTex);
         createBlock(3, 2, -15, 2.5, 2, 2.5, stoneTex);
         createBlock(0, 3, -22, 4, 2, 4, cpTex, true); // Checkpoint 1
 
-        // HAREKETLİ BLOK (Moving Platform)
         const movingBlock = createBlock(-3, 4, -29, 2.5, 1, 2.5, stoneTex);
         movingBlock.isMoving = true; movingBlock.startX = -3;
 
@@ -132,14 +144,7 @@
         createBlock(1, 8.5, -57, 2.5, 2, 2.5, stoneTex);
         createBlock(0, 9.5, -66, 6, 2, 6, diamondTex, false, true); // Bitiş
 
-        // LAVA TRAMPLENİ
         createBlock(0, -25, -20, 1200, 1, 1200, lavaTex);
-
-        // Bulutlar
-        for(let i=0; i<10; i++) {
-            const m = new THREE.Mesh(new THREE.BoxGeometry(15,1,10), new THREE.MeshBasicMaterial({color:0xffffff, transparent:true, opacity:0.8}));
-            m.position.set((Math.random()-0.5)*150, 25, (Math.random()-0.5)*150); scene.add(m);
-        }
 
         // --- 5. KARAKTER FABRİKASI ---
         function createCharacter(name, shirtTex) {
@@ -156,7 +161,6 @@
                 })()}), new THREE.MeshLambertMaterial({map:skinTex})
             ]); head.position.y = 1.9; group.add(head);
 
-            // İsim Etiketi
             const can = document.createElement('canvas'); can.width=256; can.height=64; const ctx=can.getContext('2d');
             ctx.fillStyle='rgba(0,0,0,0.6)'; ctx.fillRect(28,12,200,40); ctx.font='bold 20px monospace'; ctx.fillStyle='#fff';
             ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(name, 128, 32);
@@ -181,19 +185,19 @@
         window.addEventListener('keydown', e => { if(audioCtx.state==='suspended') audioCtx.resume(); keys[e.code]=true; });
         window.addEventListener('keyup', e => keys[e.code]=false);
 
-        // Mobil Dokunmatik Bakış Altyapısı
         let camRotX = 0.2, camRotY = 0;
-        let isMouseDown = false, prevTouchX = 0, prevTouchY = 0;
+        let prevTouchX = 0, prevTouchY = 0;
 
-        window.addEventListener('mousedown', e => { if(e.button===2 || e.button===0) isMouseDown = true; });
-        window.addEventListener('mouseup', () => isMouseDown = false);
+        // Mouse kilidiyle ekran döndürme (Sağ tıksız)
         window.addEventListener('mousemove', e => {
-            if(isMouseDown || !('ontouchstart' in window)) {
-                camRotY -= e.movementX * 0.005; camRotX += e.movementY * 0.005;
+            if (document.pointerLockElement === document.body || isMobile) {
+                camRotY -= e.movementX * 0.003;
+                camRotX += e.movementY * 0.003;
                 camRotX = Math.max(-Math.PI/3, Math.min(Math.PI/4, camRotX));
             }
         });
 
+        // Mobil Dokunmatik Bakış
         window.addEventListener('touchstart', e => {
             if(e.touches[0].clientX > window.innerWidth / 2) {
                 prevTouchX = e.touches[0].clientX; prevTouchY = e.touches[0].clientY;
@@ -244,7 +248,7 @@
             if(p1.grounded) { p1.velY = p1.jumpPower; p1.grounded = false; playSound(130, 280, 'triangle', 0.15); }
         }, {passive:true});
 
-        // --- 7. FİZİK VE DÖNGÜSÜ (BOTLAR DAHİL) ---
+        // --- 7. FİZİK VE HAREKET ---
         const clock = new THREE.Clock();
 
         function updatePhysics(p, mx, mz, delta, isBot=false) {
@@ -263,7 +267,6 @@
                 p.lLeg.rotation.x = p.rLeg.rotation.x = p.lArm.rotation.x = p.rArm.rotation.x = 0;
             }
 
-            // Yerçekimi
             p.velY -= 0.007; p.mesh.position.y += p.velY;
             let hit = false;
 
@@ -273,7 +276,7 @@
                     if(by <= b.topY && by >= b.topY-0.4 && p.velY <= 0) {
                         p.mesh.position.y = b.topY; p.velY = 0; p.grounded = true; hit = true;
                         
-                        if(b.isMoving) p.mesh.position.x += Math.sin(clock.getElapsedTime()*2)*0.05; // Platformla taşı
+                        if(b.isMoving) p.mesh.position.x += Math.sin(clock.getElapsedTime()*2)*0.05;
 
                         if(!isBot && b.isCP && p.cp.z !== b.spawn.z) {
                             p.cp = {x: b.spawn.x, y: b.spawn.y, z: b.spawn.z};
@@ -288,13 +291,11 @@
             }
             if(!hit) p.grounded = false;
 
-            // Güçlendirici Azalması
             if(p.powerTimer > 0) {
                 p.powerTimer -= delta;
-                if(p.powerTimer <= 0) p.jumpPower = 0.16; // Normal zıplama gücü
+                if(p.powerTimer <= 0) p.jumpPower = 0.16;
             }
 
-            // Düştü mü?
             if(p.mesh.position.y < -15) {
                 p.deaths++;
                 if(!isBot) {
@@ -302,7 +303,6 @@
                 } else {
                     if(p === bot1) document.getElementById('bot1-val').innerText = p.deaths;
                     if(p === bot2) document.getElementById('bot2-val').innerText = p.deaths;
-                    // Bot öldüğünde hedefini sıfırla veya rastgele lobiye yolla
                     p.targetBlockIdx = Math.random() > 0.5 ? 0 : 1;
                 }
                 p.mesh.position.set(p.cp.x, p.cp.y, p.cp.z); p.velY = 0; p.grounded = true;
@@ -313,11 +313,9 @@
             requestAnimationFrame(animate);
             const delta = clock.getDelta();
 
-            // 1. Eşya Animasyonu (Süper Ayakkabı Dönsün)
             bootItem.rotation.y += delta * 2;
             bootItem.position.y = 1 + Math.sin(clock.getElapsedTime() * 3) * 0.15;
 
-            // 2. Hareketli Blok Güncellemesi
             for(let b of blocks) {
                 if(b.isMoving) {
                     let offset = Math.sin(clock.getElapsedTime() * 2) * 2;
@@ -326,18 +324,19 @@
                 }
             }
 
-            // 3. Oyuncu Hareketi (PC + Mobil)
+            // DÜZELTİLMİŞ YÖN HESAPLAMASI (WASD artık kameraya göre tam doğru çalışıyor)
             let speed = keys['ShiftLeft'] ? 0.14 : 0.08;
             let mx = 0, mz = 0;
-            const forward = new THREE.Vector3(0,0,-1).applyAxisAngle(new THREE.Vector3(0,1,0), camRotY);
-            const right = new THREE.Vector3(1,0,0).applyAxisAngle(new THREE.Vector3(0,1,0), camRotY);
-
-            if(keys['KeyW']) { mx += forward.x*speed; mz += forward.z*speed; }
-            if(keys['KeyS']) { mx -= forward.x*speed; mz -= forward.z*speed; }
-            if(keys['KeyA']) { mx -= right.x*speed; mz -= right.z*speed; }
-            if(keys['KeyD']) { mx += right.x*speed; mz += right.z*speed; }
             
-            // Mobil sanal kol eklemesi
+            // Kameranın baktığı yön vektörleri
+            const forward = new THREE.Vector3(0, 0, -1).applyAxisAngle(new THREE.Vector3(0, 1, 0), camRotY).normalize();
+            const right = new THREE.Vector3(1, 0, 0).applyAxisAngle(new THREE.Vector3(0, 1, 0), camRotY).normalize();
+
+            if(keys['KeyW']) { mx += forward.x * speed; mz += forward.z * speed; }
+            if(keys['KeyS']) { mx -= forward.x * speed; mz -= forward.z * speed; }
+            if(keys['KeyA']) { mx -= right.x * speed; mz -= right.z * speed; }
+            if(keys['KeyD']) { mx += right.x * speed; mz += right.z * speed; }
+            
             if(joyActive) {
                 mx += (forward.x * -joyY + right.x * joyX) * speed;
                 mz += (forward.z * -joyY + right.z * joyX) * speed;
@@ -345,19 +344,17 @@
 
             if(keys['Space'] && p1.grounded) { p1.velY = p1.jumpPower; p1.grounded = false; playSound(120, 280, 'triangle', 0.15); }
 
-            // Güçlendirici Yakalama Kontrolü
             if(p1.mesh.position.distanceTo(bootItem.position) < 1.2 && p1.powerTimer <= 0) {
-                p1.jumpPower = 0.24; p1.powerTimer = 5.0; // 5 saniye mega zıplama
+                p1.jumpPower = 0.24; p1.powerTimer = 5.0;
                 playSound(300, 600, 'sine', 0.3);
                 document.getElementById('checkpoint-text').innerText = "🚀 SÜPER AYAKKABI ALINDI! (5 Sn)";
             }
 
             updatePhysics(p1, mx, mz, delta, false);
 
-            // 4. MULTIPLAYER BOT YAPAY ZEKASI (Mahmut 2 & Mahmut 3)
+            // BOT AI
             [bot1, bot2].forEach((bot, index) => {
                 let currentPos = bot.mesh.position;
-                // Botların sırayla atlayacağı hedefler (Lobi veya parkur blokları)
                 if(bot.targetBlockIdx >= blocks.length - 1) bot.targetBlockIdx = 0;
                 
                 let targetBlock = blocks[bot.targetBlockIdx];
@@ -371,24 +368,21 @@
                 let dist2D = Math.sqrt(dx*dx + dz*dz);
 
                 let bmx = 0, bmz = 0;
-                let bSpeed = 0.05 + (index * 0.01); // Farklı hızlar
+                let bSpeed = 0.05 + (index * 0.01);
 
                 if(dist2D > 0.5) {
                     bmx = (dx / dist2D) * bSpeed;
                     bmz = (dz / dist2D) * bSpeed;
-                    
-                    // Önünde uçurum veya engel varsa zıplama mantığı
                     if(bot.grounded && (dist2D < 3.5 || Math.random() < 0.02)) {
                         bot.velY = bot.jumpPower; bot.grounded = false;
                     }
                 } else {
-                    // Blok üzerine ulaştıysa bir sonraki bloğu hedefle
                     if(bot.grounded) bot.targetBlockIdx++;
                 }
                 updatePhysics(bot, bmx, bmz, delta, true);
             });
 
-            // 5. ÜÇÜNCÜ ŞAHIS KAMERA TAKİBİ
+            // ÜÇÜNCÜ ŞAHIS KAMERA TAKİBİ
             const tx = p1.mesh.position.x - Math.sin(camRotY)*Math.cos(camRotX)*7;
             const ty = p1.mesh.position.y + 2.0 + Math.sin(camRotX)*7;
             const tz = p1.mesh.position.z - Math.cos(camRotY)*Math.cos(camRotX)*7;
