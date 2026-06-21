@@ -6,7 +6,7 @@
     <title>hamyazparkour</title>
     <style>
         body { margin: 0; overflow: hidden; font-family: 'Courier New', Courier, monospace; user-select: none; touch-action: none; background-color: #000; }
-        #ui { position: absolute; top: 10px; left: 10px; color: #fff; background: rgba(0,0,0,0.85); padding: 12px; border-radius: 5px; border: 2px solid #555; pointer-events: none; max-width: 300px; }
+        #ui { position: absolute; top: 10px; left: 10px; color: #fff; background: rgba(0,0,0,0.85); padding: 12px; border-radius: 5px; border: 2px solid #555; pointer-events: none; max-width: 320px; }
         #stats { position: absolute; top: 10px; right: 10px; color: #fff; background: rgba(0,0,0,0.85); padding: 12px; border-radius: 5px; border: 2px solid #555; pointer-events: none; text-align: right; }
         h3 { margin: 0 0 5px 0; color: #55ff55; text-shadow: 1px 1px #000; font-size: 16px; }
         p { margin: 3px 0; font-size: 12px; }
@@ -27,19 +27,19 @@
     <div id="crosshair"></div>
 
     <div id="ui">
-        <h3>HAMYAZPARKOUR v10 [ÖZEL DANSLAR]</h3>
-        <p><b>PC:</b> W,A,S,D ile Yürü | Shift: Koş</p>
-        <p><b>G TUŞU:</b> Helikopter Dansı 🚁</p>
-        <p><b>F TUŞU:</b> Kafa Sallama Dansı 🕺</p>
-        <p><b>J TUŞU:</b> Akrobat/Matrix Dansı 🥷</p>
-        <p><b>KİLİTTEN ÇIKMA:</b> ESC</p>
+        <h3>HAMYAZPARKOUR v11 [2 OYUNCU & UÇUŞ]</h3>
+        <p><b>P1 (Sen):</b> W,A,S,D | Boşluk: Zıpla</p>
+        <p><b>P2 (Misafir):</b> Yön Okları | Num0 veya Sağ Shift: Zıpla</p>
+        <p><b>HİLE:</b> H + M + Z tuşlarına aynı anda basarak UÇ!</p>
+        <p><b>DANS:</b> G, F, J tuşlarına basılı tut!</p>
         <hr style="border-color: #444;">
         <p id="checkpoint-text" style="color: #55ff55; font-weight: bold;">Ekrana bir kez tıkla ve oyna!</p>
     </div>
 
     <div id="stats">
         <h3>LİDERLİK</h3>
-        <p>MAHMUT 1 (SEN): <span id="timer-val" class="stat-val">0</span> ölme</p>
+        <p>MAHMUT 1 (SEN): <span id="timer-val" class="stat-val">0</span></p>
+        <p style="color:#55ff55;">MAHMUT 4 (P2): <span id="p2-val" class="stat-val" style="color:#55ff55;">0</span></p>
         <p style="color:#ff4444;">MAHMUT 2 (BOT): <span id="bot1-val" class="stat-val" style="color:#ff4444;">0</span></p>
         <p style="color:#bb44ff;">MAHMUT 3 (BOT): <span id="bot2-val" class="stat-val" style="color:#bb44ff;">0</span></p>
     </div>
@@ -112,6 +112,7 @@
         const cloth1   = createPixelTexture('#2980b9', '#3498db', '#1f6391'); 
         const cloth2   = createPixelTexture('#c0392b', '#e74c3c', '#962d22'); 
         const cloth3   = createPixelTexture('#8e44ad', '#9b59b6', '#6c3483'); 
+        const cloth4   = createPixelTexture('#27ae60', '#2ecc71', '#1e8449'); // P2 Yeşil Kıyafet
         const pantsTex = createPixelTexture('#2c3e50', '#34495e', '#1a252f');
 
         // --- 4. HARİTA İNŞASI ---
@@ -160,7 +161,7 @@
         createBlock(-2, 7.5, -50, 2.5, 2, 2.5, stoneTex);
         createBlock(1, 8.5, -57, 2.5, 2, 2.5, stoneTex);
 
-        // ETAP 2 (YENİ UZATILAN BÖLÜMLER)
+        // ETAP 2
         createBlock(0, 9.5, -65, 4, 2, 4, cpTex, true); 
 
         const movingBlock2 = createBlock(0, 10.5, -73, 3, 1, 3, stoneTex);
@@ -195,7 +196,7 @@
         createBlock(0, -25, -50, 2000, 1, 2000, lavaTex);
 
         // --- 5. KARAKTER FABRİKASI ---
-        function createCharacter(name, shirtTex) {
+        function createCharacter(name, shirtTex, isP2=false) {
             const group = new THREE.Group();
             const body = new THREE.Mesh(new THREE.BoxGeometry(0.8, 1.2, 0.4), new THREE.MeshLambertMaterial({ map: shirtTex })); body.position.y = 1.0; group.add(body);
             const head = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.6, 0.6), [
@@ -204,7 +205,7 @@
                 new THREE.MeshLambertMaterial({map:(function(){
                     const c = document.createElement('canvas'); c.width=32; c.height=32; const cx=c.getContext('2d');
                     cx.fillStyle='#f3c19f'; cx.fillRect(0,0,32,32); cx.fillStyle='#fff'; cx.fillRect(4,10,6,4); cx.fillRect(22,10,6,4);
-                    cx.fillStyle='#2980b9'; cx.fillRect(6,10,4,4); cx.fillRect(22,10,4,4); cx.fillStyle='#c0392b'; cx.fillRect(10,22,12,3);
+                    cx.fillStyle=isP2 ? '#27ae60' : '#2980b9'; cx.fillRect(6,10,4,4); cx.fillRect(22,10,4,4); cx.fillStyle='#c0392b'; cx.fillRect(10,22,12,3);
                     const t=new THREE.CanvasTexture(c); t.magFilter=THREE.NearestFilter; return t;
                 })()}), new THREE.MeshLambertMaterial({map:skinTex})
             ]); head.position.y = 1.9; group.add(head);
@@ -221,12 +222,13 @@
             const rLeg = new THREE.Mesh(new THREE.BoxGeometry(0.26,0.8,0.26), new THREE.MeshLambertMaterial({map:pantsTex})); rLeg.position.set(0.22,0.4,0); group.add(rLeg);
 
             scene.add(group);
-            return { mesh: group, lLeg:lLeg, rLeg:rLeg, lArm:lArm, rArm:rArm, velY:0, grounded:true, deaths:0, cp:{x:0,y:0,z:20}, jumpPower:0.16, powerTimer:0, targetBlockIdx: 0 };
+            return { mesh: group, lLeg:lLeg, rLeg:rLeg, lArm:lArm, rArm:rArm, velY:0, grounded:true, deaths:0, cp:{x:0,y:0,z:20}, jumpPower:0.16, powerTimer:0, targetBlockIdx: 0, tag: name };
         }
 
-        const p1 = createCharacter("Mahmut 1 (Sen)", cloth1); p1.mesh.position.set(0, 0, 20);
-        const bot1 = createCharacter("Mahmut 2", cloth2); bot1.mesh.position.set(-3, 0, 18);
-        const bot2 = createCharacter("Mahmut 3", cloth3); bot2.mesh.position.set(3, 0, 18);
+        const p1 = createCharacter("Mahmut 1 (Sen)", cloth1, false); p1.mesh.position.set(-1, 0, 20);
+        const p2 = createCharacter("Mahmut 4 (P2)", cloth4, true); p2.mesh.position.set(1, 0, 20); // 2. KULLANICI EKLENDİ
+        const bot1 = createCharacter("Mahmut 2", cloth2, false); bot1.mesh.position.set(-4, 0, 18);
+        const bot2 = createCharacter("Mahmut 3", cloth3, false); bot2.mesh.position.set(4, 0, 18);
 
         // --- INPUTS & CONTROLS ---
         const keys = {};
@@ -244,81 +246,22 @@
             }
         });
 
-        window.addEventListener('touchstart', e => {
-            if(e.touches[0].clientX > window.innerWidth / 2) {
-                prevTouchX = e.touches[0].clientX; prevTouchY = e.touches[0].clientY;
-            }
-        }, {passive:true});
-        window.addEventListener('touchmove', e => {
-            for(let t of e.touches) {
-                if(t.clientX > window.innerWidth / 2) {
-                    let dx = t.clientX - prevTouchX; let dy = t.clientY - prevTouchY;
-                    camRotY -= dx * 0.007; camRotX += dy * 0.007;
-                    camRotX = Math.max(-Math.PI/3, Math.min(Math.PI/4, camRotX));
-                    prevTouchX = t.clientX; prevTouchY = t.clientY;
-                }
-            }
-        }, {passive:true});
-
-        const joyZone = document.getElementById('joystick-zone');
-        const joyStick = document.getElementById('joystick-stick');
-        let joyX = 0, joyY = 0, joyActive = false, joyTouchId = null;
-
-        joyZone.addEventListener('touchstart', e => {
-            joyActive = true; joyTouchId = e.changedTouches[0].identifier;
-        }, {passive:true});
-        window.addEventListener('touchmove', e => {
-            if(!joyActive) return;
-            for(let t of e.touches) {
-                if(t.identifier === joyTouchId) {
-                    let rect = joyZone.getBoundingClientRect();
-                    let cx = rect.left + 60; let cy = rect.top + 60;
-                    let dx = t.clientX - cx; let dy = t.clientY - cy;
-                    let dist = Math.sqrt(dx*dx + dy*dy);
-                    if(dist > 45) { dx = (dx/dist)*45; dy = (dy/dist)*45; }
-                    joyStick.style.transform = `translate(${dx}px, ${dy}px)`;
-                    joyX = dx / 45; joyY = dy / 45;
-                }
-            }
-        }, {passive:true});
-        window.addEventListener('touchend', e => {
-            for(let t of e.changedTouches) {
-                if(t.identifier === joyTouchId) {
-                    joyActive = false; joyStick.style.transform = 'translate(0px, 0px)';
-                    joyX = 0; joyY = 0;
-                }
-            }
-        });
-        document.getElementById('jump-btn').addEventListener('touchstart', e => {
-            if(p1.grounded && !gameFinished) { p1.velY = p1.jumpPower; p1.grounded = false; playSound(130, 280, 'triangle', 0.15); }
-        }, {passive:true});
-
         // --- 3 FARKLI ÖZEL DANS MEKANİĞİ ---
         function makeDance(p, time, type) {
             if (type === 'G') {
-                // 1. Helikopter Dansı
-                p.lArm.rotation.z = -Math.PI / 2;
-                p.rArm.rotation.z = Math.PI / 2;
-                p.mesh.rotation.y = time * 8; // Çok hızlı dönüş
-                p.lLeg.rotation.x = Math.sin(time*20)*0.3;
-                p.rLeg.rotation.x = -Math.sin(time*20)*0.3;
+                p.lArm.rotation.z = -Math.PI / 2; p.rArm.rotation.z = Math.PI / 2;
+                p.mesh.rotation.y = time * 8;
+                p.lLeg.rotation.x = Math.sin(time*20)*0.3; p.rLeg.rotation.x = -Math.sin(time*20)*0.3;
             } else if (type === 'F') {
-                // 2. Kafa Sallama Dansı
                 p.mesh.rotation.z = Math.sin(time * 10) * 0.3;
-                p.lArm.rotation.x = Math.sin(time * 15) * 1.2;
-                p.rArm.rotation.x = -Math.sin(time * 15) * 1.2;
+                p.lArm.rotation.x = Math.sin(time * 15) * 1.2; p.rArm.rotation.x = -Math.sin(time * 15) * 1.2;
                 p.lLeg.rotation.x = 0; p.rLeg.rotation.x = 0;
             } else if (type === 'J') {
-                // 3. Matrix/Akrobat Taklası
-                p.mesh.rotation.x = time * 12; // Havada takla
-                p.lArm.rotation.z = -Math.sin(time*5)*0.5;
-                p.rArm.rotation.z = Math.sin(time*5)*0.5;
+                p.mesh.rotation.x = time * 12;
+                p.lArm.rotation.z = -Math.sin(time*5)*0.5; p.rArm.rotation.z = Math.sin(time*5)*0.5;
             } else {
-                // Varsayılan Bitiş Dansı
-                p.lLeg.rotation.x = Math.sin(time * 18) * 0.7;
-                p.rLeg.rotation.x = -Math.sin(time * 18) * 0.7;
-                p.lArm.rotation.z = -Math.abs(Math.sin(time * 12)) * 1.5 - 0.2;
-                p.rArm.rotation.z = Math.abs(Math.sin(time * 12)) * 1.5 + 0.2;
+                p.lLeg.rotation.x = Math.sin(time * 18) * 0.7; p.rLeg.rotation.x = -Math.sin(time * 18) * 0.7;
+                p.lArm.rotation.z = -Math.abs(Math.sin(time * 12)) * 1.5 - 0.2; p.rArm.rotation.z = Math.abs(Math.sin(time * 12)) * 1.5 + 0.2;
                 p.mesh.rotation.y = time * 4;
             }
         }
@@ -329,33 +272,38 @@
         function updatePhysics(p, mx, mz, delta, isBot=false) {
             if (gameFinished && p.mesh.position.z < -170) return; 
 
-            p.mesh.position.x += mx; p.mesh.position.z += mz;
-            
-            // Dönüş sadece yürüme varken tetiklensin (Dans rotasyonunu bozmasın)
-            if(!isBot && (keys['KeyG'] || keys['KeyF'] || keys['KeyJ'])) {
-                // Dans tuşlarına basılıyorsa yürüme animasyonunu çalıştırma
-            } else if(mx!==0 || mz!==0) {
-                p.mesh.rotation.y = Math.atan2(mx, mz);
+            // HMZ UÇUŞ HİLESİ KONTROLÜ (Sadece p1 için)
+            let isFlying = (p === p1) && keys['KeyH'] && keys['KeyM'] && keys['KeyZ'];
+
+            if (isFlying) {
+                p.mesh.position.y += 0.15; // Yerçekimsiz yukarı uçuş
+                p.mesh.position.x += mx;
+                p.mesh.position.z += mz;
+                p.velY = 0; p.grounded = true;
+                p.lLeg.rotation.x = Math.sin(clock.getElapsedTime()*10)*0.5;
+                p.rLeg.rotation.x = -Math.sin(clock.getElapsedTime()*10)*0.5;
+                return;
             }
 
-            // Normal Yürüme Animasyon Kontrolü
-            let isMoving = (mx!==0 || mz!==0);
+            p.mesh.position.x += mx; p.mesh.position.z += mz;
+            
             let checkManualDance = !isBot && (keys['KeyG'] || keys['KeyF'] || keys['KeyJ']);
+            if(isBot || !checkManualDance) {
+                if(mx!==0 || mz!==0) p.mesh.rotation.y = Math.atan2(mx, mz);
+            }
 
+            let isMoving = (mx!==0 || mz!==0);
             if(isMoving && p.grounded && !checkManualDance) {
                 let speedFactor = isBot ? 10 : (keys['ShiftLeft'] ? 16 : 10);
                 let time = clock.getElapsedTime() * speedFactor;
                 p.lLeg.rotation.x = Math.sin(time)*0.6; p.rLeg.rotation.x = -Math.sin(time)*0.6;
                 p.lArm.rotation.x = -Math.sin(time)*0.6; p.rArm.rotation.x = Math.sin(time)*0.6;
-                p.lArm.rotation.z = 0; p.rArm.rotation.z = 0;
-                p.mesh.rotation.z = 0; p.mesh.rotation.x = 0;
+                p.lArm.rotation.z = 0; p.rArm.rotation.z = 0; p.mesh.rotation.z = 0; p.mesh.rotation.x = 0;
             } else if(!p.grounded && !checkManualDance) {
                 p.lLeg.rotation.x = -0.2; p.rLeg.rotation.x = 0.2;
             } else if (!checkManualDance) {
-                // Hareketsizken duruş sıfırlama
                 p.lLeg.rotation.x = p.rLeg.rotation.x = p.lArm.rotation.x = p.rArm.rotation.x = 0;
-                p.lArm.rotation.z = p.rArm.rotation.z = 0;
-                p.mesh.rotation.z = 0; p.mesh.rotation.x = 0;
+                p.lArm.rotation.z = p.rArm.rotation.z = 0; p.mesh.rotation.z = 0; p.mesh.rotation.x = 0;
             }
 
             p.velY -= 0.007; p.mesh.position.y += p.velY;
@@ -375,7 +323,8 @@
 
                         if(!isBot && b.isCP && p.cp.z !== b.spawn.z) {
                             p.cp = {x: b.spawn.x, y: b.spawn.y, z: b.spawn.z};
-                            document.getElementById('checkpoint-text').innerText = "Durum: Checkpoint Alındı!";
+                            if(p === p1) document.getElementById('checkpoint-text').innerText = "Mahmut 1 Checkpoint Alındı!";
+                            else document.getElementById('checkpoint-text').innerText = "Mahmut 4 Checkpoint Alındı!";
                         }
                         if(b.isFinish) {
                             gameFinished = true;
@@ -395,7 +344,9 @@
             if(p.mesh.position.y < -15) {
                 p.deaths++;
                 if(!isBot) {
-                    document.getElementById('timer-val').innerText = p.deaths; playSound(100, 50, 'sawtooth', 0.2);
+                    if(p === p1) document.getElementById('timer-val').innerText = p.deaths;
+                    if(p === p2) document.getElementById('p2-val').innerText = p.deaths;
+                    playSound(100, 50, 'sawtooth', 0.2);
                 } else {
                     if(p === bot1) document.getElementById('bot1-val').innerText = p.deaths;
                     if(p === bot2) document.getElementById('bot2-val').innerText = p.deaths;
@@ -413,91 +364,85 @@
             bootItem.rotation.y += delta * 2;
             bootItem.position.y = 1 + Math.sin(totalTime * 3) * 0.15;
 
-            // Hareketli Bloklar
             for(let b of blocks) {
                 if(b.isMoving) {
                     let offset = Math.sin(totalTime * 2) * 2.5;
                     if (b.moveType === 'side') b.mesh.position.x = b.startX + offset;
                     else if (b.moveType === 'forward') b.mesh.position.z = b.startZ + offset;
-                    
                     b.minX = b.mesh.position.x - b.width/2; b.maxX = b.mesh.position.x + b.width/2;
                     b.minZ = b.mesh.position.z - b.depth/2; b.maxZ = b.mesh.position.z + b.depth/2;
                 }
             }
 
-            // Oyun Sonu (Otomatik Bitiş Dansı)
             if(gameFinished) {
                 makeDance(p1, totalTime, 'END');
+                makeDance(p2, totalTime, 'END');
                 makeDance(bot1, totalTime, 'END');
                 makeDance(bot2, totalTime, 'END');
                 
-                if(bot1.mesh.position.z > -170) bot1.mesh.position.set(-2, 23.5, -180);
-                if(bot2.mesh.position.z > -170) bot2.mesh.position.set(2, 23.5, -180);
-                if(p1.mesh.position.z > -170) p1.mesh.position.set(0, 23.5, -182);
+                if(bot1.mesh.position.z > -170) bot1.mesh.position.set(-3, 23.5, -180);
+                if(bot2.mesh.position.z > -170) bot2.mesh.position.set(3, 23.5, -180);
+                if(p1.mesh.position.z > -170) p1.mesh.position.set(-1, 23.5, -182);
+                if(p2.mesh.position.z > -170) p2.mesh.position.set(1, 23.5, -182);
             } else {
-                // Tuş kontrolleri ve Hız
-                let speed = keys['ShiftLeft'] ? 0.14 : 0.08;
-                let mx = 0, mz = 0;
-                
+                // P1 (W, A, S, D) Hareket Hesapları
+                let speed1 = keys['ShiftLeft'] ? 0.14 : 0.08;
+                let mx1 = 0, mz1 = 0;
                 const forward = new THREE.Vector3(0, 0, -1).applyAxisAngle(new THREE.Vector3(0, 1, 0), camRotY).normalize();
                 const right = new THREE.Vector3(1, 0, 0).applyAxisAngle(new THREE.Vector3(0, 1, 0), camRotY).normalize();
 
-                // Yürüme Tuşları
-                if(keys['KeyW']) { mx += forward.x * speed; mz += forward.z * speed; }
-                if(keys['KeyS']) { mx -= forward.x * speed; mz -= forward.z * speed; }
-                if(keys['KeyA']) { mx -= right.x * speed; mz -= right.z * speed; }
-                if(keys['KeyD']) { mx += right.x * speed; mz += right.z * speed; }
-                
-                if(joyActive) {
-                    mx += (forward.x * -joyY + right.x * joyX) * speed;
-                    mz += (forward.z * -joyY + right.z * joyX) * speed;
-                }
+                if(keys['KeyW']) { mx1 += forward.x * speed1; mz1 += forward.z * speed1; }
+                if(keys['KeyS']) { mx1 -= forward.x * speed1; mz1 -= forward.z * speed1; }
+                if(keys['KeyA']) { mx1 -= right.x * speed1; mz1 -= right.z * speed1; }
+                if(keys['KeyD']) { mx1 += right.x * speed1; mz1 += right.z * speed1; }
 
                 if(keys['Space'] && p1.grounded) { p1.velY = p1.jumpPower; p1.grounded = false; playSound(120, 280, 'triangle', 0.15); }
 
-                // Süper Ayakkabı Kontrolü
+                // P2 (YÖN OKLARI) Hareket Hesapları
+                let speed2 = 0.08;
+                let mx2 = 0, mz2 = 0;
+                if(keys['ArrowUp']) { mx2 += forward.x * speed2; mz2 += forward.z * speed2; }
+                if(keys['ArrowDown']) { mx2 -= forward.x * speed2; mz2 -= forward.z * speed2; }
+                if(keys['ArrowLeft']) { mx2 -= right.x * speed2; mz2 -= right.z * speed2; }
+                if(keys['ArrowRight']) { mx2 += right.x * speed2; mz2 += right.z * speed2; }
+
+                // NumPad 0 veya Sağ Shift Zıplama tetiklemesi
+                if((keys['Numpad0'] || keys['ShiftRight']) && p2.grounded) { p2.velY = p2.jumpPower; p2.grounded = false; playSound(125, 285, 'triangle', 0.15); }
+
+                // Süper Ayakkabı toplama
                 if(p1.mesh.position.distanceTo(bootItem.position) < 1.2 && p1.powerTimer <= 0) {
-                    p1.jumpPower = 0.24; p1.powerTimer = 5.0;
-                    playSound(300, 600, 'sine', 0.3);
-                    document.getElementById('checkpoint-text').innerText = "🚀 SÜPER AYAKKABI ALINDI! (5 Sn)";
+                    p1.jumpPower = 0.24; p1.powerTimer = 5.0; playSound(300, 600, 'sine', 0.3);
+                }
+                if(p2.mesh.position.distanceTo(bootItem.position) < 1.2 && p2.powerTimer <= 0) {
+                    p2.jumpPower = 0.24; p2.powerTimer = 5.0; playSound(300, 600, 'sine', 0.3);
                 }
 
-                // Manuel Harf Dansları Tetikleyicisi
-                if (keys['KeyG']) {
-                    makeDance(p1, totalTime, 'G');
-                } else if (keys['KeyF']) {
-                    makeDance(p1, totalTime, 'F');
-                } else if (keys['KeyJ']) {
-                    makeDance(p1, totalTime, 'J');
-                }
+                // Manuel Harf Dansları Tetikleyicisi (Sadece P1 dans eder)
+                if (keys['KeyG']) makeDance(p1, totalTime, 'G');
+                else if (keys['KeyF']) makeDance(p1, totalTime, 'F');
+                else if (keys['KeyJ']) makeDance(p1, totalTime, 'J');
 
-                // Fizik hesaplamasını güncelle (Yürüme girdilerini bağımsız iletiyoruz)
-                updatePhysics(p1, mx, mz, delta, false);
+                // Fizikleri Uygula
+                updatePhysics(p1, mx1, mz1, delta, false);
+                updatePhysics(p2, mx2, mz2, delta, false);
 
-                // Bot Yapay Zekası
+                // Bot Yapay Zekaları
                 [bot1, bot2].forEach((bot, index) => {
                     if (bot.targetBlockIdx >= blocks.length) return;
-                    
                     let currentPos = bot.mesh.position;
                     let targetBlock = blocks[bot.targetBlockIdx];
-                    if(targetBlock.isCP) { bot.cp = {x: targetBlock.spawn.x, y: targetBlock.spawn.y, z: targetBlock.spawn.z}; }
+                    if(targetBlock.isCP) bot.cp = {x: targetBlock.spawn.x, y: targetBlock.spawn.y, z: targetBlock.spawn.z};
 
                     let targetX = targetBlock.mesh.position.x + (index === 0 ? -0.4 : 0.4);
                     let targetZ = targetBlock.mesh.position.z;
 
-                    let dx = targetX - currentPos.x;
-                    let dz = targetZ - currentPos.z;
+                    let dx = targetX - currentPos.x; let dz = targetZ - currentPos.z;
                     let dist2D = Math.sqrt(dx*dx + dz*dz);
-
-                    let bmx = 0, bmz = 0;
-                    let bSpeed = 0.051 + (index * 0.004);
+                    let bmx = 0, bmz = 0; let bSpeed = 0.051 + (index * 0.004);
 
                     if(dist2D > 0.4) {
-                        bmx = (dx / dist2D) * bSpeed;
-                        bmz = (dz / dist2D) * bSpeed;
-                        if(bot.grounded && (dist2D < 4.0 || Math.random() < 0.01)) {
-                            bot.velY = bot.jumpPower; bot.grounded = false;
-                        }
+                        bmx = (dx / dist2D) * bSpeed; bmz = (dz / dist2D) * bSpeed;
+                        if(bot.grounded && (dist2D < 4.0 || Math.random() < 0.01)) { bot.velY = bot.jumpPower; bot.grounded = false; }
                     } else {
                         if(bot.grounded) bot.targetBlockIdx++;
                     }
@@ -505,12 +450,16 @@
                 });
             }
 
-            // Kamera Takibi
-            const tx = p1.mesh.position.x - Math.sin(camRotY)*Math.cos(camRotX)*7;
-            const ty = p1.mesh.position.y + 2.0 + Math.sin(camRotX)*7;
-            const tz = p1.mesh.position.z - Math.cos(camRotY)*Math.cos(camRotX)*7;
+            // AKILLI İKİ KİŞİLİK KAMERA TAKİBİ (P1 ve P2'nin Tam Ortasına Odaklanır)
+            const midX = (p1.mesh.position.x + p2.mesh.position.x) / 2;
+            const midY = (p1.mesh.position.y + p2.mesh.position.y) / 2;
+            const midZ = (p1.mesh.position.z + p2.mesh.position.z) / 2;
+
+            const tx = midX - Math.sin(camRotY)*Math.cos(camRotX)*9;
+            const ty = midY + 3.0 + Math.sin(camRotX)*9;
+            const tz = midZ - Math.cos(camRotY)*Math.cos(camRotX)*9;
             camera.position.set(tx, ty, tz);
-            camera.lookAt(p1.mesh.position.x, p1.mesh.position.y + 1.0, p1.mesh.position.z);
+            camera.lookAt(midX, midY + 1.0, midZ);
 
             renderer.render(scene, camera);
         }
