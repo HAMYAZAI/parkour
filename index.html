@@ -14,6 +14,9 @@
         
         #crosshair { position: absolute; top: 50%; left: 50%; width: 10px; height: 10px; background: rgba(255,255,255,0.4); border-radius: 50%; transform: translate(-50%, -50%); pointer-events: none; }
 
+        /* GOL EKRANI */
+        #goal-overlay { position: absolute; top: 30%; left: 50%; transform: translate(-50%, -50%); font-size: 48px; color: #ffcc00; font-weight: bold; background: rgba(0,0,0,0.8); padding: 20px 40px; border: 4px solid #fff; border-radius: 10px; display: none; z-index: 100; text-shadow: 3px 3px #ff0000; text-align: center; pointer-events: none; }
+
         /* MOBİL KONTROLLER */
         #joystick-zone { position: absolute; bottom: 40px; left: 40px; width: 120px; height: 120px; background: rgba(255,255,255,0.15); border: 3px solid rgba(255,255,255,0.5); border-radius: 50%; display: none; touch-action: none; z-index: 20; }
         #joystick-stick { position: absolute; top: 35px; left: 35px; width: 50px; height: 50px; background: rgba(255,255,255,0.7); border-radius: 50%; pointer-events: none; }
@@ -24,31 +27,31 @@
 <body>
 
     <div id="crosshair"></div>
+    <div id="goal-overlay">⚽ GOOOL! ⚽</div>
 
     <div id="ui">
-        <h3>HAMYAZPARKOUR v12</h3>
-        <p style="color: #ffcc00; font-weight: bold;">-> PC: 2 TUŞU İLE 2 KİŞİLİK YAP <-</p>
+        <h3>HAMYAZPARKOUR v13</h3>
+        <p style="color: #ffcc00; font-weight: bold;">-> PC: 2 TUŞU İLE KUZENLE OYNA <-</p>
         <p><b>P1:</b> W,A,S,D / Mobil Joystick</p>
         <p><b>P2:</b> Yön Okları | Num0 veya Sağ Shift</p>
+        <p><b>SAHA:</b> Başlangıçta topa vur, gol at!</p>
         <p><b>HİLE:</b> H + M + Z ile UÇ!</p>
-        <p><b>DANS:</b> G, F, J basılı tut!</p>
         <hr style="border-color: #444;">
-        <p id="checkpoint-text" style="color: #55ff55; font-weight: bold;">Başarılar dilerim!</p>
+        <p id="checkpoint-text" style="color: #55ff55; font-weight: bold;">Sahada Maç Başladı!</p>
     </div>
 
     <div id="stats">
-        <h3>LİDERLİK</h3>
-        <p>MAHMUT 1 (SEN): <span id="timer-val" class="stat-val">0</span></p>
-        <p id="p2-score-row" style="color:#55ff55; display: none;">MAHMUT 4 (P2): <span id="p2-val" class="stat-val" style="color:#55ff55;">0</span></p>
-        <p style="color:#ff4444;">MAHMUT 2 (BOT): <span id="bot1-val" class="stat-val" style="color:#ff4444;">0</span></p>
-        <p style="color:#bb44ff;">MAHMUT 3 (BOT): <span id="bot2-val" class="stat-val" style="color:#bb44ff;">0</span></p>
+        <h3>SKORBOARD</h3>
+        <p>P1 GOL: <span id="p1-goals" class="stat-val" style="color:#55ff55;">0</span> | ÖLÜM: <span id="timer-val" class="stat-val">0</span></p>
+        <p id="p2-score-row" style="color:#55ff55; display: none;">P2 GOL: <span id="p2-goals" class="stat-val" style="color:#55ff55;">0</span> | ÖLÜM: <span id="p2-val" class="stat-val" style="color:#55ff55;">0</span></p>
+        <p style="color:#ff4444;">MAHMUT 2 (BOT): <span id="bot1-val" class="stat-val">0</span></p>
+        <p style="color:#bb44ff;">MAHMUT 3 (BOT): <span id="bot2-val" class="stat-val">0</span></p>
     </div>
 
     <div id="joystick-zone"><div id="joystick-stick"></div></div>
     <div id="jump-btn">ZIPLA</div>
 
     <script>
-        // Mobil Kontrol tespiti ve Arayüz Temizliği
         const isMobile = ('ontouchstart' in window || navigator.maxTouchPoints > 0);
         if (isMobile) {
             document.getElementById('joystick-zone').style.display = 'block';
@@ -57,7 +60,6 @@
             document.getElementById('ui').style.display = 'none'; 
         }
 
-        // --- PC İÇİN POINTER LOCK ---
         if(!isMobile) {
             document.body.addEventListener('click', () => {
                 document.body.requestPointerLock();
@@ -98,7 +100,6 @@
                 }
             }
             ctx.fillStyle = 'rgba(255, 255, 255, 0.2)'; ctx.fillRect(0, 0, 64, 2); ctx.fillRect(0, 0, 2, 64);
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.3)'; ctx.fillRect(0, 62, 64, 2); ctx.fillRect(62, 0, 2, 64);
             const t = new THREE.CanvasTexture(canvas); t.magFilter = THREE.NearestFilter; t.minFilter = THREE.NearestFilter;
             return t;
         }
@@ -108,7 +109,6 @@
         const cpTex    = createPixelTexture('#e67e22', '#f39c12', '#d35400');
         const lavaTex  = createPixelTexture('#e74c3c', '#e67e22', '#c0392b');
         const diamondTex = createPixelTexture('#1abc9c', '#2ecc71', '#16a085');
-
         const skinTex  = createPixelTexture('#f3c19f', '#faebd7', '#e0aa85');
         const cloth1   = createPixelTexture('#2980b9', '#3498db', '#1f6391'); 
         const cloth2   = createPixelTexture('#c0392b', '#e74c3c', '#962d22'); 
@@ -124,63 +124,68 @@
             const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), new THREE.MeshLambertMaterial({ map: tex }));
             mesh.position.set(x, y, z); scene.add(mesh);
             const b = { 
-                mesh: mesh, 
-                minX: x-w/2, maxX: x+w/2, 
-                topY: y+h/2, 
-                minZ: z-d/2, maxZ: z+d/2, 
-                isCP: isCP, 
-                isFinish: isFinish, 
-                spawn: {x:x, y:y+h/2, z:z}, 
-                isMoving: false,
-                moveType: 'none', 
-                startX: x, startZ: z,
-                width: w, depth: d
+                mesh: mesh, minX: x-w/2, maxX: x+w/2, topY: y+h/2, minZ: z-d/2, maxZ: z+d/2, 
+                isCP: isCP, isFinish: isFinish, spawn: {x:x, y:y+h/2, z:z}, isMoving: false,
+                moveType: 'none', startX: x, startZ: z, width: w, depth: d
             };
             blocks.push(b); return b;
         }
 
-        createBlock(0, -1, 15, 30, 2, 30, grassTex); 
-        const bootGeo = new THREE.BoxGeometry(0.6, 0.6, 0.6);
-        const bootMat = new THREE.MeshBasicMaterial({ color: 0xffcc00, wireframe: true });
-        const bootItem = new THREE.Mesh(bootGeo, bootMat); bootItem.position.set(0, 1, 15); scene.add(bootItem);
+        // Büyük Başlangıç Alanı (Futbol Sahası Buraya Gelecek)
+        const spawnPlatform = createBlock(0, -1, 15, 34, 2, 40, grassTex); 
 
+        // Sahanın Çizgileri ve Kaleleri
+        function buildGoal(zPos, color) {
+            const pMat = new THREE.MeshLambertMaterial({ color: 0xffffff });
+            const topPole = new THREE.Mesh(new THREE.BoxGeometry(8, 0.3, 0.3), pMat); topPole.position.set(0, 3, zPos); scene.add(topPole);
+            const leftPole = new THREE.Mesh(new THREE.BoxGeometry(0.3, 3, 0.3), pMat); leftPole.position.set(-4, 1.5, zPos); scene.add(leftPole);
+            const rightPole = new THREE.Mesh(new THREE.BoxGeometry(0.3, 3, 0.3), pMat); rightPole.position.set(4, 1.5, zPos); scene.add(rightPole);
+            
+            // Kalelerin arkasına görünmez minik engeller eklemeyelim ki top girsin
+        }
+        buildGoal(32, 0xffffff); // Güney Kalesi
+        buildGoal(-2, 0xffffff); // Kuzey Kalesi
+
+        // Parkur Parçaları
         createBlock(0, 0, -2, 4, 2, 4, stoneTex);
         createBlock(0, 1, -9, 2.5, 2, 2.5, stoneTex);
         createBlock(3, 2, -15, 2.5, 2, 2.5, stoneTex);
         createBlock(0, 3, -22, 4, 2, 4, cpTex, true); 
 
-        const movingBlock1 = createBlock(-3, 4, -29, 2.5, 1, 2.5, stoneTex);
-        movingBlock1.isMoving = true; movingBlock1.moveType = 'side';
-
+        const movingBlock1 = createBlock(-3, 4, -29, 2.5, 1, 2.5, stoneTex); movingBlock1.isMoving = true; movingBlock1.moveType = 'side';
         createBlock(2, 5, -36, 2.5, 2, 2.5, stoneTex);
         createBlock(2, 6.5, -43, 4, 2, 4, cpTex, true); 
         createBlock(-2, 7.5, -50, 2.5, 2, 2.5, stoneTex);
         createBlock(1, 8.5, -57, 2.5, 2, 2.5, stoneTex);
         createBlock(0, 9.5, -65, 4, 2, 4, cpTex, true); 
 
-        const movingBlock2 = createBlock(0, 10.5, -73, 3, 1, 3, stoneTex);
-        movingBlock2.isMoving = true; movingBlock2.moveType = 'forward';
-
+        const movingBlock2 = createBlock(0, 10.5, -73, 3, 1, 3, stoneTex); movingBlock2.isMoving = true; movingBlock2.moveType = 'forward';
         createBlock(-3, 11.5, -81, 2, 2, 2, stoneTex);
         createBlock(3, 12.5, -88, 2, 2, 2, stoneTex);
         createBlock(0, 13.5, -95, 4, 2, 4, cpTex, true); 
         createBlock(-2, 14.5, -102, 1.5, 2, 1.5, stoneTex);
         createBlock(2, 15.5, -109, 1.5, 2, 1.5, stoneTex);
-        createBlock(-1, 16.5, -116, 1.5, 2, 1.5, stoneTex);
         createBlock(0, 17.5, -124, 4, 2, 4, cpTex, true); 
-
-        const movingBlock3 = createBlock(4, 18.5, -132, 2.5, 1, 2.5, stoneTex);
-        movingBlock3.isMoving = true; movingBlock3.moveType = 'side';
-        const movingBlock4 = createBlock(-4, 19.5, -140, 2.5, 1, 2.5, stoneTex);
-        movingBlock4.isMoving = true; movingBlock4.moveType = 'side';
-
-        createBlock(0, 20.5, -149, 4, 2, 4, cpTex, true); 
-        createBlock(0, 21.0, -157, 1, 1, 6, stoneTex);
-        createBlock(0, 21.5, -167, 2.5, 1, 2.5, stoneTex);
-        createBlock(0, 22.5, -182, 15, 2, 15, diamondTex, false, true); 
+        createBlock(0, 22.5, -145, 15, 2, 15, diamondTex, false, true); 
         createBlock(0, -25, -50, 2000, 1, 2000, lavaTex);
 
-        // --- 5. KARAKTER FABRİKASI ---
+        // --- 5. FUTBOL TOPU SİSTEMİ ---
+        const ballGeo = new THREE.SphereGeometry(0.5, 16, 16);
+        const ballMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.2 });
+        // Siyah beyaz desen havası için wireframe çizgileri ekleyelim
+        const ballWire = new THREE.Mesh(ballGeo, new THREE.MeshBasicMaterial({color: 0x000000, wireframe: true}));
+        const ball = new THREE.Group(); ball.add(new THREE.Mesh(ballGeo, ballMat)); ball.add(ballWire);
+        ball.position.set(0, 0.5, 15); scene.add(ball);
+
+        let ballVelX = 0, ballVelZ = 0;
+        let lastToucher = null; 
+
+        function resetBall() {
+            ball.position.set(0, 0.5, 15);
+            ballVelX = 0; ballVelZ = 0;
+        }
+
+        // --- 6. KARAKTER FABRİKASI ---
         function createCharacter(name, shirtTex, isP2=false) {
             const group = new THREE.Group();
             const body = new THREE.Mesh(new THREE.BoxGeometry(0.8, 1.2, 0.4), new THREE.MeshLambertMaterial({ map: shirtTex })); body.position.y = 1.0; group.add(body);
@@ -191,7 +196,7 @@
                     const c = document.createElement('canvas'); c.width=32; c.height=32; const cx=c.getContext('2d');
                     cx.fillStyle='#f3c19f'; cx.fillRect(0,0,32,32); cx.fillStyle='#fff'; cx.fillRect(4,10,6,4); cx.fillRect(22,10,6,4);
                     cx.fillStyle=isP2 ? '#27ae60' : '#2980b9'; cx.fillRect(6,10,4,4); cx.fillRect(22,10,4,4); cx.fillStyle='#c0392b'; cx.fillRect(10,22,12,3);
-                    const t=new THREE.CanvasTexture(c); t.magFilter=THREE.NearestFilter; return t;
+                    return new THREE.CanvasTexture(c);
                 })()}), new THREE.MeshLambertMaterial({map:skinTex})
             ]); head.position.y = 1.9; group.add(head);
 
@@ -209,16 +214,16 @@
             scene.add(group);
             return { 
                 mesh: group, lLeg:lLeg, rLeg:rLeg, lArm:lArm, rArm:rArm, 
-                velY:0, grounded:true, deaths:0, cp:{x:0,y:0,z:20}, 
-                jumpPower:0.16, powerTimer:0, targetBlockIdx: 0, tag: name,
-                jumpCount: 0 // ÇİFT ZIPLAMA TAKİBİ İÇİN DEĞİŞKEN
+                velY:0, grounded:true, deaths:0, goals:0, cp:{x:0,y:0,z:20}, 
+                jumpPower:0.16, targetBlockIdx: 0, tag: name, jumpCount: 0,
+                danceTimer: 0 // Otomatik gol dansı sayacı
             };
         }
 
-        const p1 = createCharacter("Mahmut 1 (Sen)", cloth1, false); p1.mesh.position.set(0, 0, 20);
-        const p2 = createCharacter("Mahmut 4 (P2)", cloth4, true); p2.mesh.position.set(5, 0, 14); 
-        const bot1 = createCharacter("Mahmut 2", cloth2, false); bot1.mesh.position.set(-4, 0, 18);
-        const bot2 = createCharacter("Mahmut 3", cloth3, false); bot2.mesh.position.set(4, 0, 18);
+        const p1 = createCharacter("Mahmut 1 (Sen)", cloth1, false); p1.mesh.position.set(-2, 0, 20);
+        const p2 = createCharacter("Mahmut 4 (P2)", cloth4, true); p2.mesh.position.set(2, 0, 20); 
+        const bot1 = createCharacter("Mahmut 2", cloth2, false); bot1.mesh.position.set(-12, 0, 18);
+        const bot2 = createCharacter("Mahmut 3", cloth3, false); bot2.mesh.position.set(12, 0, 18);
 
         let coOpModeActive = false; 
 
@@ -226,198 +231,122 @@
             if(isMobile) return; 
             coOpModeActive = !coOpModeActive;
             if(coOpModeActive) {
-                p2.mesh.position.set(p1.mesh.position.x + 1.5, p1.mesh.position.y, p1.mesh.position.z);
+                p2.mesh.position.set(p1.mesh.position.x + 2, p1.mesh.position.y, p1.mesh.position.z);
                 p2.cp = {x: p1.cp.x, y: p1.cp.y, z: p1.cp.z};
                 document.getElementById('p2-score-row').style.display = 'block';
-                document.getElementById('checkpoint-text').innerText = "2 Kişilik Mod Aktif! 🎮";
                 playSound(200, 400, 'sine', 0.2);
             } else {
                 document.getElementById('p2-score-row').style.display = 'none';
-                document.getElementById('checkpoint-text').innerText = "Tek Kişilik Mod.";
-                playSound(400, 200, 'sine', 0.2);
             }
         }
 
-        // --- INPUTS & CONTROLS (PC) ---
+        // --- INPUTS & CONTROLS ---
         const keys = {};
         window.addEventListener('keydown', e => { 
             if(audioCtx.state==='suspended') audioCtx.resume(); 
             
-            // PC Çift Zıplama Mantığı (Space tuşuna ilk basış anı kontrolü)
-            if (e.code === 'Space' && !keys['Space']) {
-                if (p1.grounded) {
-                    p1.velY = p1.jumpPower; p1.grounded = false; p1.jumpCount = 1;
-                    playSound(120, 280, 'triangle', 0.15);
-                } else if (p1.jumpCount === 1) { // Havadayken 2. kez basıldıysa
-                    p1.velY = p1.jumpPower * 0.95; p1.jumpCount = 2;
-                    playSound(240, 480, 'sine', 0.12); // Çift zıplamaya özel ince ses
-                }
+            if (e.code === 'Space' && !keys['Space'] && p1.danceTimer <= 0) {
+                if (p1.grounded) { p1.velY = p1.jumpPower; p1.grounded = false; p1.jumpCount = 1; playSound(120, 280, 'triangle', 0.15); }
+                else if (p1.jumpCount === 1) { p1.velY = p1.jumpPower * 0.95; p1.jumpCount = 2; playSound(240, 480, 'sine', 0.12); }
             }
-
-            // PC P2 Zıplama Kontrolü (Num0 veya ShiftRight)
-            if ((e.code === 'Numpad0' || e.code === 'ShiftRight') && !keys[e.code] && coOpModeActive && !isMobile) {
+            if ((e.code === 'Numpad0' || e.code === 'ShiftRight') && !keys[e.code] && coOpModeActive && !isMobile && p2.danceTimer <= 0) {
                 if (p2.grounded) { p2.velY = p2.jumpPower; p2.grounded = false; p2.jumpCount = 1; playSound(125, 285, 'triangle', 0.15); }
                 else if (p2.jumpCount === 1) { p2.velY = p2.jumpPower * 0.95; p2.jumpCount = 2; playSound(245, 485, 'sine', 0.12); }
             }
-
             keys[e.code]=true; 
             if(e.code === 'Digit2') toggleCoOp();
         });
         window.addEventListener('keyup', e => keys[e.code]=false);
 
         let camRotX = 0.2, camRotY = 0;
-
         window.addEventListener('mousemove', e => {
             if (!isMobile && document.pointerLockElement === document.body) {
-                camRotY -= e.movementX * 0.003;
-                camRotX += e.movementY * 0.003;
+                camRotY -= e.movementX * 0.003; camRotX += e.movementY * 0.003;
                 camRotX = Math.max(-Math.PI/3, Math.min(Math.PI/4, camRotX));
             }
         });
 
-        // --- MOBİL DOKUNMATİK MOTORU ---
-        let joyTouchId = null;
-        let camTouchId = null;
-        let joyStartX = 0, joyStartY = 0;
-        let joyMoveX = 0, joyMoveY = 0;
+        // MOBİL DOKUNMA ENGINE
+        let joyTouchId = null; let camTouchId = null;
+        let joyStartX = 0, joyStartY = 0; let joyMoveX = 0, joyMoveY = 0;
         let prevCamTouchX = 0, prevCamTouchY = 0;
+        const jZone = document.getElementById('joystick-zone'), jStick = document.getElementById('joystick-stick'), jBtn = document.getElementById('jump-btn');
 
-        const jZone = document.getElementById('joystick-zone');
-        const jStick = document.getElementById('joystick-stick');
-        const jBtn = document.getElementById('jump-btn');
-
-        // Mobil Dokunma ile Çift Zıplama Tetikleyicisi
         jBtn.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            if(audioCtx.state==='suspended') audioCtx.resume();
-            
-            if (p1.grounded) {
-                p1.velY = p1.jumpPower; p1.grounded = false; p1.jumpCount = 1;
-                playSound(120, 280, 'triangle', 0.15);
-            } else if (p1.jumpCount === 1) {
-                p1.velY = p1.jumpPower * 0.95; p1.jumpCount = 2;
-                playSound(240, 480, 'sine', 0.12);
-            }
+            e.preventDefault(); if(audioCtx.state==='suspended') audioCtx.resume();
+            if(p1.danceTimer > 0) return;
+            if (p1.grounded) { p1.velY = p1.jumpPower; p1.grounded = false; p1.jumpCount = 1; playSound(120, 280, 'triangle', 0.15); }
+            else if (p1.jumpCount === 1) { p1.velY = p1.jumpPower * 0.95; p1.jumpCount = 2; playSound(240, 480, 'sine', 0.12); }
         });
 
         window.addEventListener('touchstart', (e) => {
             if (!isMobile) return;
             for (let t of e.changedTouches) {
                 if (t.clientX < window.innerWidth / 2 && joyTouchId === null) {
-                    const rect = jZone.getBoundingClientRect();
-                    joyStartX = rect.left + rect.width / 2;
-                    joyStartY = rect.top + rect.height / 2;
-                    joyTouchId = t.identifier;
-                } 
-                else if (t.clientX >= window.innerWidth / 2 && t.clientY < window.innerHeight - 150 && camTouchId === null) {
-                    camTouchId = t.identifier;
-                    prevCamTouchX = t.clientX;
-                    prevCamTouchY = t.clientY;
+                    const rect = jZone.getBoundingClientRect(); joyStartX = rect.left + rect.width / 2; joyStartY = rect.top + rect.height / 2; joyTouchId = t.identifier;
+                } else if (t.clientX >= window.innerWidth / 2 && t.clientY < window.innerHeight - 150 && camTouchId === null) {
+                    camTouchId = t.identifier; prevCamTouchX = t.clientX; prevCamTouchY = t.clientY;
                 }
             }
-        }, { passive: false });
-
+        });
         window.addEventListener('touchmove', (e) => {
             if (!isMobile) return;
             for (let t of e.touches) {
                 if (t.identifier === joyTouchId) {
-                    let dx = t.clientX - joyStartX;
-                    let dy = t.clientY - joyStartY;
-                    let dist = Math.sqrt(dx*dx + dy*dy);
-                    let maxDist = 40;
-                    if (dist > maxDist) {
-                        dx = (dx / dist) * maxDist;
-                        dy = (dy / dist) * maxDist;
-                    }
-                    joyMoveX = dx / maxDist;
-                    joyMoveY = dy / maxDist;
-                    jStick.style.transform = `translate(${dx}px, ${dy}px)`;
+                    let dx = t.clientX - joyStartX, dy = t.clientY - joyStartY;
+                    let dist = Math.sqrt(dx*dx + dy*dy), maxDist = 40;
+                    if (dist > maxDist) { dx = (dx / dist) * maxDist; dy = (dy / dist) * maxDist; }
+                    joyMoveX = dx / maxDist; joyMoveY = dy / maxDist; jStick.style.transform = `translate(${dx}px, ${dy}px)`;
                 }
                 if (t.identifier === camTouchId) {
-                    let mX = t.clientX - prevCamTouchX;
-                    let mY = t.clientY - prevCamTouchY;
-                    camRotY -= mX * 0.008;
-                    camRotX += mY * 0.008;
+                    camRotY -= (t.clientX - prevCamTouchX) * 0.008; camRotX += (t.clientY - prevCamTouchY) * 0.008;
                     camRotX = Math.max(-Math.PI/3, Math.min(Math.PI/4, camRotX));
-                    prevCamTouchX = t.clientX;
-                    prevCamTouchY = t.clientY;
+                    prevCamTouchX = t.clientX; prevCamTouchY = t.clientY;
                 }
             }
-        }, { passive: false });
-
+        });
         window.addEventListener('touchend', (e) => {
             for (let t of e.changedTouches) {
-                if (t.identifier === joyTouchId) {
-                    joyTouchId = null;
-                    joyMoveX = 0; joyMoveY = 0;
-                    jStick.style.transform = 'translate(0px, 0px)';
-                }
-                if (t.identifier === camTouchId) {
-                    camTouchId = null;
-                }
+                if (t.identifier === joyTouchId) { joyTouchId = null; joyMoveX = 0; joyMoveY = 0; jStick.style.transform = 'translate(0px, 0px)'; }
+                if (t.identifier === camTouchId) camTouchId = null;
             }
         });
 
-        window.addEventListener('touchcancel', (e) => {
-            joyTouchId = null; camTouchId = null;
-            joyMoveX = 0; joyMoveY = 0;
-            jStick.style.transform = 'translate(0px, 0px)';
-        });
-
-        // --- DANS MEKANİĞİ ---
-        function makeDance(p, time, type) {
-            if (type === 'G') {
-                p.lArm.rotation.z = -Math.PI / 2; p.rArm.rotation.z = Math.PI / 2;
-                p.mesh.rotation.y = time * 8;
-                p.lLeg.rotation.x = Math.sin(time*20)*0.3; p.rLeg.rotation.x = -Math.sin(time*20)*0.3;
-            } else if (type === 'F') {
-                p.mesh.rotation.z = Math.sin(time * 10) * 0.3;
-                p.lArm.rotation.x = Math.sin(time * 15) * 1.2; p.rArm.rotation.x = -Math.sin(time * 15) * 1.2;
-                p.lLeg.rotation.x = 0; p.rLeg.rotation.x = 0;
-            } else if (type === 'J') {
-                p.mesh.rotation.x = time * 12;
-                p.lArm.rotation.z = -Math.sin(time*5)*0.5; p.rArm.rotation.z = Math.sin(time*5)*0.5;
-            } else {
-                p.lLeg.rotation.x = Math.sin(time * 18) * 0.7; p.rLeg.rotation.x = -Math.sin(time * 18) * 0.7;
-                p.lArm.rotation.z = -Math.abs(Math.sin(time * 12)) * 1.5 - 0.2; p.rArm.rotation.z = Math.abs(Math.sin(time * 12)) * 1.5 + 0.2;
-                p.mesh.rotation.y = time * 4;
-            }
+        function makeDance(p, time) {
+            p.lArm.rotation.z = -Math.PI / 2; p.rArm.rotation.z = Math.PI / 2;
+            p.mesh.rotation.y = time * 10;
+            p.lLeg.rotation.x = Math.sin(time*25)*0.5; p.rLeg.rotation.x = -Math.sin(time*25)*0.5;
         }
 
-        // --- FİZİK VE HAREKET DÖNGÜSÜ ---
+        // --- 7. FİZİK VE DÖNGÜ GÜNCELLEMESİ ---
         const clock = new THREE.Clock();
 
         function updatePhysics(p, mx, mz, delta, isBot=false) {
-            if (gameFinished && p.mesh.position.z < -170) return; 
+            if (p.danceTimer > 0) {
+                p.danceTimer -= delta;
+                makeDance(p, clock.getElapsedTime());
+                p.velY = 0;
+                return; 
+            }
 
             let isFlying = (p === p1) && keys['KeyH'] && keys['KeyM'] && keys['KeyZ'];
             if (isFlying) {
                 p.mesh.position.y += 0.15; p.mesh.position.x += mx; p.mesh.position.z += mz;
-                p.velY = 0; p.grounded = true; p.jumpCount = 0;
                 return;
             }
 
             p.mesh.position.x += mx; p.mesh.position.z += mz;
-            
-            let checkManualDance = !isBot && (keys['KeyG'] || keys['KeyF'] || keys['KeyJ']);
-            if(isBot || !checkManualDance) {
-                if(mx!==0 || mz!==0) p.mesh.rotation.y = Math.atan2(mx, mz);
-            }
+            if(mx!==0 || mz!==0) p.mesh.rotation.y = Math.atan2(mx, mz);
 
             let isMoving = (mx!==0 || mz!==0);
-            if(isMoving && p.grounded && !checkManualDance) {
-                let speedFactor = isBot ? 10 : (keys['ShiftLeft'] ? 16 : 10);
-                let time = clock.getElapsedTime() * speedFactor;
+            if(isMoving && p.grounded) {
+                let time = clock.getElapsedTime() * 12;
                 p.lLeg.rotation.x = Math.sin(time)*0.6; p.rLeg.rotation.x = -Math.sin(time)*0.6;
                 p.lArm.rotation.x = -Math.sin(time)*0.6; p.rArm.rotation.x = Math.sin(time)*0.6;
-            } else if(!p.grounded && !checkManualDance) {
-                // Havada takla efekti (Çift zıplama yapıldıysa hızlı döner)
-                if(p.jumpCount === 2) {
-                    p.mesh.rotation.x += delta * 12;
-                } else {
-                    p.lLeg.rotation.x = -0.2; p.rLeg.rotation.x = 0.2;
-                }
-            } else if (!checkManualDance) {
+            } else if(!p.grounded) {
+                if(p.jumpCount === 2) p.mesh.rotation.x += delta * 12;
+                else { p.lLeg.rotation.x = -0.2; p.rLeg.rotation.x = 0.2; }
+            } else {
                 p.lLeg.rotation.x = p.rLeg.rotation.x = p.lArm.rotation.x = p.rArm.rotation.x = p.mesh.rotation.x = 0;
             }
 
@@ -429,43 +358,38 @@
                 if(bx >= b.minX-0.4 && bx <= b.maxX+0.4 && bz >= b.minZ-0.4 && bz <= b.maxZ+0.4) {
                     if(by <= b.topY && by >= b.topY-0.4 && p.velY <= 0) {
                         p.mesh.position.y = b.topY; p.velY = 0; p.grounded = true; p.jumpCount = 0; hit = true;
-                        p.mesh.rotation.x = 0; // Yere basınca takla rotasyonunu sıfırla
+                        p.mesh.rotation.x = 0;
                         if(b.isMoving) {
                             let offsetVelocity = Math.cos(clock.getElapsedTime() * 2) * 0.05;
                             if (b.moveType === 'side') p.mesh.position.x += offsetVelocity;
-                            if (b.moveType === 'forward') p.mesh.position.z += offsetVelocity;
                         }
                         if(!isBot && b.isCP && p.cp.z !== b.spawn.z) {
                             p.cp = {x: b.spawn.x, y: b.spawn.y, z: b.spawn.z};
-                            if(!isMobile) document.getElementById('checkpoint-text').innerText = `${p.tag} Checkpoint Alındı!`;
                         }
-                        if(b.isFinish) {
-                            gameFinished = true;
-                            if(!isMobile) document.getElementById('checkpoint-text').innerText = "🏆 PARKUR BİTTİ! HERKES DANSA! 🏆";
-                        }
+                        if(b.isFinish) gameFinished = true;
                         break;
                     }
                 }
             }
             if(!hit) p.grounded = false;
 
-            if(p.powerTimer > 0) {
-                p.powerTimer -= delta;
-                if(p.powerTimer <= 0) p.jumpPower = 0.16;
+            // TOP KONTROLÜ (Karakter Topa Çarptı Mı?)
+            let distToBall = p.mesh.position.distanceTo(ball.position);
+            if(distToBall < 1.1) {
+                let diffX = ball.position.x - p.mesh.position.x;
+                let diffZ = ball.position.z - p.mesh.position.z;
+                let len = Math.sqrt(diffX*diffX + diffZ*diffZ) || 1;
+                ballVelX = (diffX / len) * 0.35;
+                ballVelZ = (diffZ / len) * 0.35;
+                lastToucher = p; // En son dokunan oyuncu
+                playSound(350, 180, 'sine', 0.08);
             }
 
             if(p.mesh.position.y < -15) {
                 p.deaths++;
-                if(!isBot) {
-                    if(p === p1) document.getElementById('timer-val').innerText = p.deaths;
-                    if(p === p2) document.getElementById('p2-val').innerText = p.deaths;
-                    playSound(100, 50, 'sawtooth', 0.2);
-                } else {
-                    if(p === bot1) document.getElementById('bot1-val').innerText = p.deaths;
-                    if(p === bot2) document.getElementById('bot2-val').innerText = p.deaths;
-                    p.targetBlockIdx = Math.max(0, p.targetBlockIdx - 2); 
-                }
-                p.mesh.position.set(p.cp.x, p.cp.y, p.cp.z); p.velY = 0; p.grounded = true; p.jumpCount = 0; p.mesh.rotation.x = 0;
+                if(p === p1) document.getElementById('timer-val').innerText = p.deaths;
+                if(p === p2) document.getElementById('p2-val').innerText = p.deaths;
+                p.mesh.position.set(p.cp.x, p.cp.y, p.cp.z); p.velY = 0; p.grounded = true;
             }
         }
 
@@ -474,24 +398,67 @@
             const delta = clock.getDelta();
             const totalTime = clock.getElapsedTime();
 
-            bootItem.rotation.y += delta * 2;
-            bootItem.position.y = 1 + Math.sin(totalTime * 3) * 0.15;
-
             for(let b of blocks) {
                 if(b.isMoving) {
                     let offset = Math.sin(totalTime * 2) * 2.5;
                     if (b.moveType === 'side') b.mesh.position.x = b.startX + offset;
-                    else if (b.moveType === 'forward') b.mesh.position.z = b.startZ + offset;
                     b.minX = b.mesh.position.x - b.width/2; b.maxX = b.mesh.position.x + b.width/2;
-                    b.minZ = b.mesh.position.z - b.depth/2; b.maxZ = b.mesh.position.z + b.depth/2;
                 }
             }
 
+            // --- BALL PHYSICS ---
+            ball.position.x += ballVelX;
+            ball.position.z += ballVelZ;
+            ballVelX *= 0.97; ballVelZ *= 0.97; // Sürtünme yavaşlaması
+
+            // Topun dönme efekti
+            ball.rotation.x += ballVelZ * 0.5;
+            ball.rotation.z -= ballVelX * 0.5;
+
+            // Saha dışı duvar sınırları
+            if(ball.position.x > 16.5) { ball.position.x = 16.5; ballVelX *= -0.8; }
+            if(ball.position.x < -16.5) { ball.position.x = -16.5; ballVelX *= -0.8; }
+            if(ball.position.z > 34.5) { ball.position.z = 34.5; ballVelZ *= -0.8; }
+
+            // KALE / GOL KONTROLÜ
+            // Kuzey Kalesi Gol Çizgisi (z <= -2)
+            if(ball.position.z <= -2 && ball.position.x >= -4 && ball.position.x <= 4) {
+                if(lastToucher) {
+                    lastToucher.goals++;
+                    lastToucher.danceTimer = 5.0; // 5 saniye otomatik sevinç dansı
+                    if(lastToucher === p1) document.getElementById('p1-goals').innerText = p1.goals;
+                    if(lastToucher === p2) document.getElementById('p2-goals').innerText = p2.goals;
+                    
+                    const overlay = document.getElementById('goal-overlay');
+                    overlay.innerText = `⚽ GOOOL! - ${lastToucher.tag.split(" ")[0]} ⚽`;
+                    overlay.style.display = 'block';
+                    setTimeout(() => overlay.style.display = 'none', 3000);
+                }
+                playSound(150, 600, 'sawtooth', 0.6);
+                resetBall();
+            }
+            // Güney Kalesi Gol Çizgisi (z >= 32)
+            else if(ball.position.z >= 32 && ball.position.x >= -4 && ball.position.x <= 4) {
+                if(lastToucher) {
+                    lastToucher.goals++; lastToucher.danceTimer = 5.0;
+                    if(lastToucher === p1) document.getElementById('p1-goals').innerText = p1.goals;
+                    if(lastToucher === p2) document.getElementById('p2-goals').innerText = p2.goals;
+                    
+                    const overlay = document.getElementById('goal-overlay');
+                    overlay.innerText = `⚽ GOOOL! - ${lastToucher.tag.split(" ")[0]} ⚽`;
+                    overlay.style.display = 'block';
+                    setTimeout(() => overlay.style.display = 'none', 3000);
+                }
+                playSound(150, 600, 'sawtooth', 0.6);
+                resetBall();
+            }
+            // Sahanın arkasına kaçarsa korner/aut gibi sıfırla
+            else if(ball.position.z < -2.5) {
+                resetBall();
+            }
+
             if(gameFinished) {
-                makeDance(p1, totalTime, 'END');
-                makeDance(p2, totalTime, 'END');
-                makeDance(bot1, totalTime, 'END');
-                makeDance(bot2, totalTime, 'END');
+                makeDance(p1, totalTime); makeDance(p2, totalTime);
             } else {
                 let mx1 = 0, mz1 = 0;
                 const forward = new THREE.Vector3(0, 0, -1).applyAxisAngle(new THREE.Vector3(0, 1, 0), camRotY).normalize();
@@ -518,43 +485,29 @@
                     if(keys['ArrowRight']) { mx2 += right.x * speed2; mz2 += right.z * speed2; }
                 }
 
-                if(p1.mesh.position.distanceTo(bootItem.position) < 1.2 && p1.powerTimer <= 0) {
-                    p1.jumpPower = 0.24; p1.powerTimer = 5.0; playSound(300, 600, 'sine', 0.3);
-                }
-
-                if (!isMobile) {
-                    if (keys['KeyG']) makeDance(p1, totalTime, 'G');
-                    else if (keys['KeyF']) makeDance(p1, totalTime, 'F');
-                    else if (keys['KeyJ']) makeDance(p1, totalTime, 'J');
-                }
-
                 updatePhysics(p1, mx1, mz1, delta, false);
                 if(coOpModeActive) updatePhysics(p2, mx2, mz2, delta, false);
 
-                // Botlar
+                // Botlar (Parkura devam ediyorlar)
                 [bot1, bot2].forEach((bot, index) => {
                     if (bot.targetBlockIdx >= blocks.length) return;
                     let currentPos = bot.mesh.position;
                     let targetBlock = blocks[bot.targetBlockIdx];
-                    if(targetBlock.isCP) bot.cp = {x: targetBlock.spawn.x, y: targetBlock.spawn.y, z: targetBlock.spawn.z};
-
                     let targetX = targetBlock.mesh.position.x + (index === 0 ? -0.4 : 0.4);
                     let targetZ = targetBlock.mesh.position.z;
                     let dx = targetX - currentPos.x; let dz = targetZ - currentPos.z;
                     let dist2D = Math.sqrt(dx*dx + dz*dz);
-                    let bmx = 0, bmz = 0; let bSpeed = 0.051 + (index * 0.004);
+                    let bmx = 0, bmz = 0;
 
                     if(dist2D > 0.4) {
-                        bmx = (dx / dist2D) * bSpeed; bmz = (dz / dist2D) * bSpeed;
-                        if(bot.grounded && (dist2D < 4.0 || Math.random() < 0.01)) { bot.velY = bot.jumpPower; bot.grounded = false; }
-                    } else {
-                        if(bot.grounded) bot.targetBlockIdx++;
-                    }
+                        bmx = (dx / dist2D) * 0.055; bmz = (dz / dist2D) * 0.055;
+                        if(bot.grounded && dist2D < 4.0) { bot.velY = bot.jumpPower; bot.grounded = false; }
+                    } else { if(bot.grounded) bot.targetBlockIdx++; }
                     updatePhysics(bot, bmx, bmz, delta, true);
                 });
             }
 
-            // --- KAMERA SİSTEMİ ---
+            // CAMERA
             let targetX, targetY, targetZ;
             let lookAtX, lookAtY, lookAtZ;
 
@@ -562,14 +515,14 @@
                 const midX = (p1.mesh.position.x + p2.mesh.position.x) / 2;
                 const midY = (p1.mesh.position.y + p2.mesh.position.y) / 2;
                 const midZ = (p1.mesh.position.z + p2.mesh.position.z) / 2;
-                targetX = midX - Math.sin(camRotY)*Math.cos(camRotX)*9;
-                targetY = midY + 3.0 + Math.sin(camRotX)*9;
-                targetZ = midZ - Math.cos(camRotY)*Math.cos(camRotX)*9;
+                targetX = midX - Math.sin(camRotY)*Math.cos(camRotX)*11;
+                targetY = midY + 4.5 + Math.sin(camRotX)*11;
+                targetZ = midZ - Math.cos(camRotY)*Math.cos(camRotX)*11;
                 lookAtX = midX; lookAtY = midY + 1.0; lookAtZ = midZ;
             } else {
-                targetX = p1.mesh.position.x - Math.sin(camRotY)*Math.cos(camRotX)*7;
-                targetY = p1.mesh.position.y + 2.0 + Math.sin(camRotX)*7;
-                targetZ = p1.mesh.position.z - Math.cos(camRotY)*Math.cos(camRotX)*7;
+                targetX = p1.mesh.position.x - Math.sin(camRotY)*Math.cos(camRotX)*8;
+                targetY = p1.mesh.position.y + 2.5 + Math.sin(camRotX)*8;
+                targetZ = p1.mesh.position.z - Math.cos(camRotY)*Math.cos(camRotX)*8;
                 lookAtX = p1.mesh.position.x; lookAtY = p1.mesh.position.y + 1.0; lookAtZ = p1.mesh.position.z;
             }
 
