@@ -27,7 +27,7 @@
     <div id="crosshair"></div>
 
     <div id="ui">
-        <h3>HAMYAZPARKOUR v9 [DÜZELTİLMİŞ]</h3>
+        <h3>HAMYAZPARKOUR v10 [DANS VE EKSTRA UZUN]</h3>
         <p><b>PC:</b> Ekrana Tıkla -> Fareyi Oynatarak Bak | W,A,S,D ile Yürü</p>
         <p><b>KİLİTTEN ÇIKMA:</b> ESC</p>
         <hr style="border-color: #444;">
@@ -113,10 +113,24 @@
 
         // --- 4. HARİTA İNŞASI ---
         const blocks = [];
+        let gameFinished = false; // Dansı tetiklemek için global bitiş durumu
+
         function createBlock(x, y, z, w, h, d, tex, isCP=false, isFinish=false) {
             const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), new THREE.MeshLambertMaterial({ map: tex }));
             mesh.position.set(x, y, z); scene.add(mesh);
-            const b = { mesh: mesh, minX: x-w/2, maxX: x+w/2, topY: y+h/2, minZ: z-d/2, maxZ: z+d/2, isCP: isCP, isFinish: isFinish, spawn: {x:x, y:y+h/2, z:z}, isMoving: false };
+            const b = { 
+                mesh: mesh, 
+                minX: x-w/2, maxX: x+w/2, 
+                topY: y+h/2, 
+                minZ: z-d/2, maxZ: z+d/2, 
+                isCP: isCP, 
+                isFinish: isFinish, 
+                spawn: {x:x, y:y+h/2, z:z}, 
+                isMoving: false,
+                moveType: 'none', // 'side', 'forward', 'rotate'
+                startX: x, startZ: z,
+                width: w, depth: d
+            };
             blocks.push(b); return b;
         }
 
@@ -128,23 +142,57 @@
         const bootMat = new THREE.MeshBasicMaterial({ color: 0xffcc00, wireframe: true });
         const bootItem = new THREE.Mesh(bootGeo, bootMat); bootItem.position.set(0, 1, 15); scene.add(bootItem);
 
-        // PARKUR
+        // --- ESKİ PARKUR KATMANI ---
         createBlock(0, 0, -2, 4, 2, 4, stoneTex);
         createBlock(0, 1, -9, 2.5, 2, 2.5, stoneTex);
         createBlock(3, 2, -15, 2.5, 2, 2.5, stoneTex);
         createBlock(0, 3, -22, 4, 2, 4, cpTex, true); // Checkpoint 1
 
-        const movingBlock = createBlock(-3, 4, -29, 2.5, 1, 2.5, stoneTex);
-        movingBlock.isMoving = true; movingBlock.startX = -3;
+        const movingBlock1 = createBlock(-3, 4, -29, 2.5, 1, 2.5, stoneTex);
+        movingBlock1.isMoving = true; movingBlock1.moveType = 'side';
 
         createBlock(2, 5, -36, 2.5, 2, 2.5, stoneTex);
         createBlock(2, 6.5, -43, 4, 2, 4, cpTex, true); // Checkpoint 2
 
         createBlock(-2, 7.5, -50, 2.5, 2, 2.5, stoneTex);
         createBlock(1, 8.5, -57, 2.5, 2, 2.5, stoneTex);
-        createBlock(0, 9.5, -66, 6, 2, 6, diamondTex, false, true); // Bitiş
 
-        createBlock(0, -25, -20, 1200, 1, 1200, lavaTex);
+        // --- YENİ EKLENEN EKSTRA UZUN PARKUR ETAPLARI ---
+        createBlock(0, 9.5, -65, 4, 2, 4, cpTex, true); // Checkpoint 3
+
+        // İleri Geri Hareket Eden Blok
+        const movingBlock2 = createBlock(0, 10.5, -73, 3, 1, 3, stoneTex);
+        movingBlock2.isMoving = true; movingBlock2.moveType = 'forward';
+
+        createBlock(-3, 11.5, -81, 2, 2, 2, stoneTex);
+        createBlock(3, 12.5, -88, 2, 2, 2, stoneTex);
+        createBlock(0, 13.5, -95, 4, 2, 4, cpTex, true); // Checkpoint 4
+
+        // Merdiven Gibi Yükselen Zorlu Bloklar
+        createBlock(-2, 14.5, -102, 1.5, 2, 1.5, stoneTex);
+        createBlock(2, 15.5, -109, 1.5, 2, 1.5, stoneTex);
+        createBlock(-1, 16.5, -116, 1.5, 2, 1.5, stoneTex);
+        createBlock(0, 17.5, -124, 4, 2, 4, cpTex, true); // Checkpoint 5
+
+        // Dönen / Sağa Sola Çok Hızlı Kayan Bloklar
+        const movingBlock3 = createBlock(4, 18.5, -132, 2.5, 1, 2.5, stoneTex);
+        movingBlock3.isMoving = true; movingBlock3.moveType = 'side';
+
+        const movingBlock4 = createBlock(-4, 19.5, -140, 2.5, 1, 2.5, stoneTex);
+        movingBlock4.isMoving = true; movingBlock4.moveType = 'side';
+
+        // Büyük Final Öncesi Son checkpoint
+        createBlock(0, 20.5, -149, 4, 2, 4, cpTex, true); // Checkpoint 6
+
+        // İnce Köprü ve Uzun Atlayış Alanı
+        createBlock(0, 21.0, -157, 1, 1, 5, stoneTex);
+        createBlock(0, 21.5, -167, 2.5, 1, 2.5, stoneTex);
+        
+        // DEV BİTİŞ PİSTİ VE DANS ALANI
+        createBlock(0, 22.5, -178, 12, 2, 12, diamondTex, false, true); // Bitiş / Dans Sahnesi
+
+        // LAVA TABANI
+        createBlock(0, -25, -50, 2000, 1, 2000, lavaTex);
 
         // --- 5. KARAKTER FABRİKASI ---
         function createCharacter(name, shirtTex) {
@@ -188,7 +236,6 @@
         let camRotX = 0.2, camRotY = 0;
         let prevTouchX = 0, prevTouchY = 0;
 
-        // Mouse kilidiyle ekran döndürme (Sağ tıksız)
         window.addEventListener('mousemove', e => {
             if (document.pointerLockElement === document.body || isMobile) {
                 camRotY -= e.movementX * 0.003;
@@ -197,7 +244,6 @@
             }
         });
 
-        // Mobil Dokunmatik Bakış
         window.addEventListener('touchstart', e => {
             if(e.touches[0].clientX > window.innerWidth / 2) {
                 prevTouchX = e.touches[0].clientX; prevTouchY = e.touches[0].clientY;
@@ -214,7 +260,6 @@
             }
         }, {passive:true});
 
-        // Sanal Joystick İşlemleri
         const joyZone = document.getElementById('joystick-zone');
         const joyStick = document.getElementById('joystick-stick');
         let joyX = 0, joyY = 0, joyActive = false, joyTouchId = null;
@@ -245,26 +290,43 @@
             }
         });
         document.getElementById('jump-btn').addEventListener('touchstart', e => {
-            if(p1.grounded) { p1.velY = p1.jumpPower; p1.grounded = false; playSound(130, 280, 'triangle', 0.15); }
+            if(p1.grounded && !gameFinished) { p1.velY = p1.jumpPower; p1.grounded = false; playSound(130, 280, 'triangle', 0.15); }
         }, {passive:true});
 
-        // --- 7. FİZİK VE HAREKET ---
+        // --- 7. FİZİK, HAREKET VE DANS ANIMASYONU ---
         const clock = new THREE.Clock();
 
+        function makeDance(p, time) {
+            // Karakterlerin kollarını ve bacaklarını çılgınca sağa sola sallayan kutlama dansı
+            p.lLeg.rotation.x = Math.sin(time * 15) * 0.8;
+            p.rLeg.rotation.x = -Math.sin(time * 15) * 0.8;
+            p.lArm.rotation.z = -Math.abs(Math.sin(time * 10)) * 1.2;
+            p.rArm.rotation.z = Math.abs(Math.sin(time * 10)) * 1.2;
+            p.mesh.position.y = p.mesh.parent ? p.mesh.position.y : p.mesh.position.y; // Yüksekliği koru
+            p.mesh.rotation.y = time * 5; // Kendi etrafında hızlıca döner
+        }
+
         function updatePhysics(p, mx, mz, delta, isBot=false) {
+            // Eğer oyun bittiyse ve bu karakter bitiş alanındaysa sadece dans etsin
+            if (gameFinished && p.mesh.position.z < -170) {
+                return; 
+            }
+
             p.mesh.position.x += mx; p.mesh.position.z += mz;
             if(mx!==0 || mz!==0) p.mesh.rotation.y = Math.atan2(mx, mz);
 
-            // Uzuv sallama animasyonu
+            // Uzuv yürüme animasyonu
             if((mx!==0 || mz!==0) && p.grounded) {
                 let speedFactor = isBot ? 10 : (keys['ShiftLeft'] ? 16 : 10);
                 let time = clock.getElapsedTime() * speedFactor;
                 p.lLeg.rotation.x = Math.sin(time)*0.6; p.rLeg.rotation.x = -Math.sin(time)*0.6;
                 p.lArm.rotation.x = -Math.sin(time)*0.6; p.rArm.rotation.x = Math.sin(time)*0.6;
+                p.lArm.rotation.z = 0; p.rArm.rotation.z = 0;
             } else if(!p.grounded) {
                 p.lLeg.rotation.x = -0.2; p.rLeg.rotation.x = 0.2;
             } else {
                 p.lLeg.rotation.x = p.rLeg.rotation.x = p.lArm.rotation.x = p.rArm.rotation.x = 0;
+                p.lArm.rotation.z = p.rArm.rotation.z = 0;
             }
 
             p.velY -= 0.007; p.mesh.position.y += p.velY;
@@ -276,14 +338,22 @@
                     if(by <= b.topY && by >= b.topY-0.4 && p.velY <= 0) {
                         p.mesh.position.y = b.topY; p.velY = 0; p.grounded = true; hit = true;
                         
-                        if(b.isMoving) p.mesh.position.x += Math.sin(clock.getElapsedTime()*2)*0.05;
+                        // Üzerindeki blok hareketliyse karakteri de kaydır
+                        if(b.isMoving) {
+                            let offsetVelocity = Math.cos(clock.getElapsedTime() * 2) * 0.05;
+                            if (b.moveType === 'side') p.mesh.position.x += offsetVelocity;
+                            if (b.moveType === 'forward') p.mesh.position.z += offsetVelocity;
+                        }
 
                         if(!isBot && b.isCP && p.cp.z !== b.spawn.z) {
                             p.cp = {x: b.spawn.x, y: b.spawn.y, z: b.spawn.z};
                             document.getElementById('checkpoint-text').innerText = "Durum: Checkpoint Alındı!";
                         }
-                        if(!isBot && b.isFinish) {
-                            document.getElementById('checkpoint-text').innerText = "🏆 GG! PARKURU BİTİRDİN! 🏆";
+                        if(b.isFinish) {
+                            if (!isBot) {
+                                gameFinished = true;
+                                document.getElementById('checkpoint-text').innerText = "🏆 GG! PARKURU BİTİRDİN! DANS ZAMANI! 🏆";
+                            }
                         }
                         break;
                     }
@@ -303,7 +373,7 @@
                 } else {
                     if(p === bot1) document.getElementById('bot1-val').innerText = p.deaths;
                     if(p === bot2) document.getElementById('bot2-val').innerText = p.deaths;
-                    p.targetBlockIdx = Math.random() > 0.5 ? 0 : 1;
+                    p.targetBlockIdx = Math.max(0, p.targetBlockIdx - 2); // Bot düşünce biraz geriden başlasın
                 }
                 p.mesh.position.set(p.cp.x, p.cp.y, p.cp.z); p.velY = 0; p.grounded = true;
             }
@@ -312,55 +382,74 @@
         function animate() {
             requestAnimationFrame(animate);
             const delta = clock.getDelta();
+            const totalTime = clock.getElapsedTime();
 
             bootItem.rotation.y += delta * 2;
-            bootItem.position.y = 1 + Math.sin(clock.getElapsedTime() * 3) * 0.15;
+            bootItem.position.y = 1 + Math.sin(totalTime * 3) * 0.15;
 
+            // --- HAREKETLİ BLOK SİMÜLASYONU ---
             for(let b of blocks) {
                 if(b.isMoving) {
-                    let offset = Math.sin(clock.getElapsedTime() * 2) * 2;
-                    b.mesh.position.x = b.startX + offset;
-                    b.minX = b.mesh.position.x - 1.25; b.maxX = b.mesh.position.x + 1.25;
+                    let offset = Math.sin(totalTime * 2) * 2.5;
+                    if (b.moveType === 'side') {
+                        b.mesh.position.x = b.startX + offset;
+                    } else if (b.moveType === 'forward') {
+                        b.mesh.position.z = b.startZ + offset;
+                    }
+                    b.minX = b.mesh.position.x - b.width/2; b.maxX = b.mesh.position.x + b.width/2;
+                    b.minZ = b.mesh.position.z - b.depth/2; b.maxZ = b.mesh.position.z + b.depth/2;
                 }
             }
 
-            // DÜZELTİLMİŞ YÖN HESAPLAMASI (WASD artık kameraya göre tam doğru çalışıyor)
+            // --- OYUNCU HAREKETLERİ ---
             let speed = keys['ShiftLeft'] ? 0.14 : 0.08;
             let mx = 0, mz = 0;
             
-            // Kameranın baktığı yön vektörleri
             const forward = new THREE.Vector3(0, 0, -1).applyAxisAngle(new THREE.Vector3(0, 1, 0), camRotY).normalize();
             const right = new THREE.Vector3(1, 0, 0).applyAxisAngle(new THREE.Vector3(0, 1, 0), camRotY).normalize();
 
-            if(keys['KeyW']) { mx += forward.x * speed; mz += forward.z * speed; }
-            if(keys['KeyS']) { mx -= forward.x * speed; mz -= forward.z * speed; }
-            if(keys['KeyA']) { mx -= right.x * speed; mz -= right.z * speed; }
-            if(keys['KeyD']) { mx += right.x * speed; mz += right.z * speed; }
-            
-            if(joyActive) {
-                mx += (forward.x * -joyY + right.x * joyX) * speed;
-                mz += (forward.z * -joyY + right.z * joyX) * speed;
-            }
-
-            if(keys['Space'] && p1.grounded) { p1.velY = p1.jumpPower; p1.grounded = false; playSound(120, 280, 'triangle', 0.15); }
-
-            if(p1.mesh.position.distanceTo(bootItem.position) < 1.2 && p1.powerTimer <= 0) {
-                p1.jumpPower = 0.24; p1.powerTimer = 5.0;
-                playSound(300, 600, 'sine', 0.3);
-                document.getElementById('checkpoint-text').innerText = "🚀 SÜPER AYAKKABI ALINDI! (5 Sn)";
-            }
-
-            updatePhysics(p1, mx, mz, delta, false);
-
-            // BOT AI
-            [bot1, bot2].forEach((bot, index) => {
-                let currentPos = bot.mesh.position;
-                if(bot.targetBlockIdx >= blocks.length - 1) bot.targetBlockIdx = 0;
+            if(!gameFinished) {
+                if(keys['KeyW']) { mx += forward.x * speed; mz += forward.z * speed; }
+                if(keys['KeyS']) { mx -= forward.x * speed; mz -= forward.z * speed; }
+                if(keys['KeyA']) { mx -= right.x * speed; mz -= right.z * speed; }
+                if(keys['KeyD']) { mx += right.x * speed; mz += right.z * speed; }
                 
+                if(joyActive) {
+                    mx += (forward.x * -joyY + right.x * joyX) * speed;
+                    mz += (forward.z * -joyY + right.z * joyX) * speed;
+                }
+
+                if(keys['Space'] && p1.grounded) { p1.velY = p1.jumpPower; p1.grounded = false; playSound(120, 280, 'triangle', 0.15); }
+
+                if(p1.mesh.position.distanceTo(bootItem.position) < 1.2 && p1.powerTimer <= 0) {
+                    p1.jumpPower = 0.24; p1.powerTimer = 5.0;
+                    playSound(300, 600, 'sine', 0.3);
+                    document.getElementById('checkpoint-text').innerText = "🚀 SÜPER AYAKKABI ALINDI! (5 Sn)";
+                }
+                updatePhysics(p1, mx, mz, delta, false);
+            } else {
+                // Oyuncu kazandıysa otomatik dans moduna geç
+                makeDance(p1, totalTime);
+            }
+
+            // --- BOT YAPAY ZEKASI ---
+            [bot1, bot2].forEach((bot, index) => {
+                if (gameFinished || bot.targetBlockIdx >= blocks.length) {
+                    // Bot bitiş alanındaysa veya oyun bittiyse dans etsin
+                    if (bot.mesh.position.z < -170) {
+                        makeDance(bot, totalTime);
+                    } else {
+                        // Oyun bittiğinde hala parkurdalarsa bitişe ışınlanıp dansa katılsınlar
+                        bot.mesh.position.set(index === 0 ? -2 : 2, 22.5, -178);
+                    }
+                    return;
+                }
+                
+                let currentPos = bot.mesh.position;
                 let targetBlock = blocks[bot.targetBlockIdx];
                 if(targetBlock.isCP) { bot.cp = {x: targetBlock.spawn.x, y: targetBlock.spawn.y, z: targetBlock.spawn.z}; }
 
-                let targetX = targetBlock.mesh.position.x + (index === 0 ? -0.5 : 0.5);
+                let targetX = targetBlock.mesh.position.x + (index === 0 ? -0.4 : 0.4);
                 let targetZ = targetBlock.mesh.position.z;
 
                 let dx = targetX - currentPos.x;
@@ -368,12 +457,12 @@
                 let dist2D = Math.sqrt(dx*dx + dz*dz);
 
                 let bmx = 0, bmz = 0;
-                let bSpeed = 0.05 + (index * 0.01);
+                let bSpeed = 0.05 + (index * 0.005);
 
-                if(dist2D > 0.5) {
+                if(dist2D > 0.4) {
                     bmx = (dx / dist2D) * bSpeed;
                     bmz = (dz / dist2D) * bSpeed;
-                    if(bot.grounded && (dist2D < 3.5 || Math.random() < 0.02)) {
+                    if(bot.grounded && (dist2D < 4.0 || Math.random() < 0.01)) {
                         bot.velY = bot.jumpPower; bot.grounded = false;
                     }
                 } else {
