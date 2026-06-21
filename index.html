@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>hamyazparkour - ORİJİNAL ANA SÜRÜM</title>
+    <title>hamyazparkour - ROBOT MAHMUT UZUN SÜRÜM</title>
     <style>
         body { margin: 0; overflow: hidden; font-family: 'Courier New', Courier, monospace; user-select: none; touch-action: none; background-color: #000; }
         #ui { position: absolute; top: 10px; left: 10px; color: #fff; background: rgba(0,0,0,0.85); padding: 12px; border-radius: 5px; border: 2px solid #555; z-index: 10; max-width: 300px; pointer-events: none; }
@@ -13,7 +13,7 @@
         .stat-val { color: #ffcc00; font-weight: bold; }
         #crosshair { position: absolute; top: 50%; left: 50%; width: 10px; height: 10px; background: rgba(255,255,255,0.4); border-radius: 50%; transform: translate(-50%, -50%); pointer-events: none; }
         #power-bar { width: 100%; background: #333; height: 6px; margin-top: 5px; border-radius: 3px; overflow: hidden; display: none; }
-        #power-fill { width: 100%; background: #ffcc00; height: 100%; }
+        #power-fill { width: 100%; background: #55ff55; height: 100%; }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
@@ -22,24 +22,23 @@
     <div id="crosshair"></div>
 
     <div id="ui">
-        <h3>HAMYAZPARKOUR v9</h3>
+        <h3>HAMYAZPARKOUR v12</h3>
         <p><b>KONTROLLER:</b></p>
         <p>• Ekrana Tıkla -> Fareyle Bak</p>
-        <p>• Hareket: W, A, S, D</p>
-        <p>• Zıplama: BOŞLUK (SPACE)</p>
-        <p>• Hızlı Koşma: SOL SHIFT</p>
-        <p>• Eğlence / Dans: G Tuşu</p>
+        <p>• Hareket: W, A, S, D | Depar: SHIFT</p>
+        <p><b>DANS MODLARI:</b></p>
+        <p>• G: Robot Dansı | H: Kafa Sallama | J: Matrix</p>
         <div id="power-bar"><div id="power-fill"></div></div>
     </div>
 
     <div id="stats">
-        <h3>İSTATİSTİKLER</h3>
+        <h3>ROBOT İSTATİSTİK</h3>
         <p>DÜŞME SAYISI: <span id="deaths" class="stat-val">0</span></p>
-        <p>AKTİF CHECKPOINT: <span id="cp-stat" class="stat-val">Yok</span></p>
+        <p>CHECKPOINT: <span id="cp-stat" class="stat-val">Yok</span></p>
     </div>
 
     <script>
-        // --- 1. SES SENTEZLEYİCİ ALTYAPISI ---
+        // --- 1. SES SENTEZLEYİCİ (ROBOTİK SESLER) ---
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         function playSound(f1, f2, type, d) {
             try {
@@ -52,40 +51,47 @@
             } catch(e){}
         }
 
-        // --- 2. SAHNE, KAMERA VE RENDERER AYARLARI ---
-        const scene = new THREE.Scene(); scene.background = new THREE.Color(0xaaccff);
+        // --- 2. SAHNE VE IŞIKLAR ---
+        const scene = new THREE.Scene(); scene.background = new THREE.Color(0x1a1a2e);
         const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight); document.body.appendChild(renderer.domElement);
         
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.8); scene.add(ambientLight);
-        const dirLight = new THREE.DirectionalLight(0xfff5ea, 0.6); dirLight.position.set(40, 80, 30); scene.add(dirLight);
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6); scene.add(ambientLight);
+        const dirLight = new THREE.DirectionalLight(0x00ffff, 0.8); dirLight.position.set(40, 80, 30); scene.add(dirLight);
 
-        // --- 3. RETRO PİKSEL DOKU OLUŞTURUCU ---
+        // --- 3. DOKULAR VE ROBOT YÜZÜ ---
         function createPixelTexture(base, noise, shadow) {
             const canvas = document.createElement('canvas'); canvas.width = 64; canvas.height = 64;
             const ctx = canvas.getContext('2d'); ctx.fillStyle = base; ctx.fillRect(0, 0, 64, 64);
             for (let x = 0; x < 64; x++) {
                 for (let y = 0; y < 64; y++) {
-                    const r = Math.random();
-                    if (r > 0.88) { ctx.fillStyle = noise; ctx.fillRect(x, y, 1, 1); }
-                    else if (r < 0.12) { ctx.fillStyle = shadow; ctx.fillRect(x, y, 1, 1); }
+                    if (Math.random() > 0.85) { ctx.fillStyle = noise; ctx.fillRect(x, y, 1, 1); }
+                    else if (Math.random() < 0.15) { ctx.fillStyle = shadow; ctx.fillRect(x, y, 1, 1); }
                 }
             }
             const t = new THREE.CanvasTexture(canvas); t.magFilter = THREE.NearestFilter; t.minFilter = THREE.NearestFilter;
             return t;
         }
 
-        const grassTex = createPixelTexture('#3b8f21', '#4ca634', '#2d6d19');
-        const stoneTex = createPixelTexture('#6b6b6b', '#828282', '#525252');
-        const cpTex    = createPixelTexture('#e67e22', '#f39c12', '#d35400');
-        const lavaTex  = createPixelTexture('#e74c3c', '#e67e22', '#c0392b');
-        const diamondTex = createPixelTexture('#1abc9c', '#2ecc71', '#16a085');
-        const skinTex  = createPixelTexture('#f3c19f', '#faebd7', '#e0aa85');
-        const shirtTex = createPixelTexture('#2980b9', '#3498db', '#1f6391');
-        const pantsTex = createPixelTexture('#2c3e50', '#34495e', '#1a252f');
+        // Robot Yüz Dokusu Oluşturucu
+        function createRobotFace() {
+            const canvas = document.createElement('canvas'); canvas.width = 64; canvas.height = 64;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#4e54c8'; ctx.fillRect(0, 0, 64, 64); // Metalik Kafa
+            ctx.fillStyle = '#00ffff'; ctx.fillRect(16, 20, 10, 10); ctx.fillRect(38, 20, 10, 10); // Parlayan Robot Gözleri
+            ctx.fillStyle = '#00ff55'; ctx.fillRect(20, 42, 24, 4); // Dijital Ağız Hattı
+            const t = new THREE.CanvasTexture(canvas); t.magFilter = THREE.NearestFilter; return t;
+        }
 
-        // --- 4. MAP DÜNYASI VE BLOKLAR ---
+        const metalTex = createPixelTexture('#4e54c8', '#5f64df', '#373b99');
+        const jointTex = createPixelTexture('#1f2147', '#2a2d5c', '#151630');
+        const cpTex    = createPixelTexture('#e67e22', '#f39c12', '#d35400');
+        const lavaTex  = createPixelTexture('#ff3333', '#ff6633', '#990000');
+        const diamondTex = createPixelTexture('#00ffcc', '#33ffdd', '#00aa88');
+        const faceTex  = createRobotFace();
+
+        // --- 4. BAYAĞI UZATILMIŞ MEGA HARİTA ---
         const blocks = [];
         function createBlock(x, y, z, w, h, d, tex, isCP=false, isFinish=false) {
             const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), new THREE.MeshLambertMaterial({ map: tex }));
@@ -95,55 +101,86 @@
         }
 
         // Geniş Başlangıç Lobisi
-        createBlock(0, -1, 15, 30, 2, 30, grassTex); 
+        createBlock(0, -1, 15, 30, 2, 30, metalTex); 
 
-        // Havada Dönüp Duran Süper Ayakkabı İtemi
-        const bootItem = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.6, 0.6), new THREE.MeshBasicMaterial({ color: 0xffcc00, wireframe: true }));
-        bootItem.position.set(0, 1, 15); scene.add(bootItem);
+        // Havada Dönüp Duran Robotik Güç Çekirdeği (Eski Ayakkabı Yerine)
+        const bootItem = new THREE.Mesh(new THREE.SphereGeometry(0.4, 8, 8), new THREE.MeshBasicMaterial({ color: 0x00ffcc, wireframe: true }));
+        bootItem.position.set(0, 1.5, 15); scene.add(bootItem);
 
-        // Parkur Elementleri
-        createBlock(0, 0, -2, 4, 2, 4, stoneTex);
-        createBlock(0, 1, -9, 2.5, 2, 2.5, stoneTex);
-        createBlock(3, 2, -15, 2.5, 2, 2.5, stoneTex);
-        createBlock(0, 3, -22, 4, 2, 4, cpTex, true); // Checkpoint 1
+        // --- UZATILMIŞ ETAPLAR ---
+        // Etap 1: Temel Atlamalar
+        createBlock(0, 0, -2, 4, 2, 4, metalTex);
+        createBlock(0, 1, -9, 2.5, 2, 2.5, metalTex);
+        createBlock(3, 2, -15, 2.5, 2, 2.5, metalTex);
+        createBlock(0, 3, -22, 4, 2, 4, cpTex, true); // CP 1
 
-        // Sağa Sola Kayan Gizemli Platform
-        const movingBlock = createBlock(-3, 4, -29, 2.5, 1, 2.5, stoneTex);
-        movingBlock.isMoving = true;
+        // Etap 2: Mekanik Kayan Platform ve Dar Bloklar
+        const movingBlock1 = createBlock(-3, 4, -29, 2.5, 1, 2.5, metalTex); movingBlock1.isMoving = true; movingBlock1.speed = 2; movingBlock1.range = 2.5;
+        createBlock(2, 5, -36, 2, 2, 2, metalTex);
+        createBlock(-2, 6, -42, 1.8, 2, 1.8, metalTex);
+        createBlock(0, 7, -49, 4, 2, 4, cpTex, true); // CP 2
 
-        createBlock(2, 5, -36, 2.5, 2, 2.5, stoneTex);
-        createBlock(2, 6.5, -43, 4, 2, 4, cpTex, true); // Checkpoint 2
-        createBlock(-2, 7.5, -50, 2.5, 2, 2.5, stoneTex);
-        createBlock(1, 8.5, -57, 2.5, 2, 2.5, stoneTex);
-        createBlock(0, 9.5, -66, 6, 2, 6, diamondTex, false, true); // Bitiş Elması
+        // Etap 3: Uzatılmış Yüksek İrtifa Direkleri (Yeni Eklenen Bölümler)
+        createBlock(4, 8.5, -56, 1.5, 3, 1.5, metalTex);
+        createBlock(0, 10, -63, 1.5, 3, 1.5, metalTex);
+        createBlock(-4, 11.5, -70, 1.5, 3, 1.5, metalTex);
+        const movingBlock2 = createBlock(0, 12.5, -77, 3, 1, 3, metalTex); movingBlock2.isMoving = true; movingBlock2.speed = 3.5; movingBlock2.range = 4;
+        createBlock(0, 13.5, -85, 4, 2, 4, cpTex, true); // CP 3 (Yeni Uzak Checkpoint)
+
+        // Etap 4: Merdiven Tipi İnce Sütunlar ve Bitiş Koşusu
+        createBlock(3, 15, -92, 1.2, 2, 1.2, metalTex);
+        createBlock(-3, 16.5, -99, 1.2, Merdiven=2, 1.2, metalTex);
+        createBlock(0, 18, -107, 1.5, 2, 1.5, metalTex);
+        createBlock(0, 19, -116, 2, 2, 2, metalTex);
+        
+        // Devasa Bitiş Elmas Platformu
+        createBlock(0, 20, -128, 6, 2, 6, diamondTex, false, true);
 
         // Sonsuz Lav Denizi
-        createBlock(0, -25, -20, 1200, 1, 1200, lavaTex);
+        createBlock(0, -25, -50, 2000, 1, 2000, lavaTex);
 
-        // --- 5. DETAYLI MAHMUT KARAKTER MODELİ ---
+        // --- 5. ROBOT MAHMUT MODELİ (YÜZ, İSİM VE METALİK BOTLAR DAHİL) ---
         const playerGroup = new THREE.Group();
-        const body = new THREE.Mesh(new THREE.BoxGeometry(0.8, 1.2, 0.4), new THREE.MeshLambertMaterial({ map: shirtTex })); body.position.y = 1.0; playerGroup.add(body);
-        const head = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.6, 0.6), new THREE.MeshLambertMaterial({ map: skinTex })); head.position.y = 1.9; playerGroup.add(head);
+        const body = new THREE.Mesh(new THREE.BoxGeometry(0.8, 1.2, 0.4), new THREE.MeshLambertMaterial({ map: metalTex })); body.position.y = 1.0; playerGroup.add(body);
+        
+        // Robot Kafası ve Özel Pikselli Yüzü
+        const head = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.6, 0.6), [
+            new THREE.MeshLambertMaterial({map:metalTex}), new THREE.MeshLambertMaterial({map:metalTex}),
+            new THREE.MeshLambertMaterial({map:metalTex}), new THREE.MeshLambertMaterial({map:metalTex}),
+            new THREE.MeshLambertMaterial({map:faceTex}),  new THREE.MeshLambertMaterial({map:metalTex}) // Sadece ön yüz
+        ]);
+        head.position.y = 1.9; playerGroup.add(head);
 
-        const lArm = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.8, 0.28), new THREE.MeshLambertMaterial({ map: shirtTex })); lArm.position.set(-0.55, 1.0, 0); playerGroup.add(lArm);
-        const rArm = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.8, 0.28), new THREE.MeshLambertMaterial({ map: shirtTex })); rArm.position.set(0.55, 1.0, 0); playerGroup.add(rArm);
-        const lLeg = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.8, 0.28), new THREE.MeshLambertMaterial({ map: pantsTex })); lLeg.position.set(-0.22, 0.4, 0); playerGroup.add(lLeg);
-        const rLeg = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.8, 0.28), new THREE.MeshLambertMaterial({ map: pantsTex })); rLeg.position.set(0.22, 0.4, 0); playerGroup.add(rLeg);
+        // Üstünde "MAHMUT" Yazan Metin Etiketi (Geri Geldi!)
+        const nameCanvas = document.createElement('canvas'); nameCanvas.width = 256; nameCanvas.height = 64;
+        const nameCtx = nameCanvas.getContext('2d');
+        nameCtx.fillStyle = 'rgba(0,0,0,0.7)'; nameCtx.fillRect(10, 10, 236, 44);
+        nameCtx.font = 'bold 24px monospace'; nameCtx.fillStyle = '#00ffff'; nameCtx.textAlign = 'center'; nameCtx.textBaseline = 'middle';
+        nameCtx.fillText("MAHMUT", 128, 32);
+        const nameSprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(nameCanvas), transparent: true }));
+        nameSprite.position.y = 2.6; nameSprite.scale.set(2, 0.5, 1); playerGroup.add(nameSprite);
+
+        // Kollar ve Robotik Eklem Detayları
+        const lArm = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.8, 0.25), new THREE.MeshLambertMaterial({ map: jointTex })); lArm.position.set(-0.55, 1.0, 0); playerGroup.add(lArm);
+        const rArm = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.8, 0.25), new THREE.MeshLambertMaterial({ map: jointTex })); rArm.position.set(0.55, 1.0, 0); playerGroup.add(rArm);
+        const lLeg = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.8, 0.25), new THREE.MeshLambertMaterial({ map: jointTex })); lLeg.position.set(-0.22, 0.4, 0); playerGroup.add(lLeg);
+        const rLeg = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.8, 0.25), new THREE.MeshLambertMaterial({ map: jointTex })); rLeg.position.set(0.22, 0.4, 0); playerGroup.add(rLeg);
+
+        // Robotun Çelik Ağır Botları (Ayak Altındaki Ağır Bloklar)
+        const lBot = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.15, 0.4), new THREE.MeshLambertMaterial({ map: metalTex })); lBot.position.set(0, -0.45, 0.05); lLeg.add(lBot);
+        const rBot = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.15, 0.4), new THREE.MeshLambertMaterial({ map: metalTex })); rBot.position.set(0, -0.45, 0.05); rLeg.add(rBot);
 
         playerGroup.position.set(0, 0, 20); scene.add(playerGroup);
 
-        // --- 6. FİZİK PARAMETRELERİ VE KONTROL TAKİBİ ---
+        // --- 6. FİZİK PARAMETRELERİ ---
         let velY = 0, grounded = true, deaths = 0;
         let respawnPoint = { x: 0, y: 0, z: 20 };
-        let jumpPower = 0.16;
-        let powerUpTimer = 0;
-
-        let isDancing = false, danceTimer = 0;
+        let jumpPower = 0.16; let powerUpTimer = 0;
+        let danceMode = 0, danceTimer = 0; // 0:Yok, 1:Robot, 2:Headbang, 3:Matrix
 
         const keys = {};
         window.addEventListener('keydown', e => { if(audioCtx.state==='suspended') audioCtx.resume(); keys[e.code] = true; });
         window.addEventListener('keyup', e => keys[e.code] = false);
-
         document.body.addEventListener('click', () => { document.body.pointerLockElement || document.body.requestPointerLock(); });
 
         let camRotX = 0.2, camRotY = 0;
@@ -154,28 +191,30 @@
             }
         });
 
-        // --- 7. OYUN DÖNGÜSÜ VE FİZİKSEL DOĞRULAMA ---
+        // --- 7. OYUN DÖNGÜSÜ (DANS VE HAREKET HESAPLARI) ---
         const clock = new THREE.Clock();
 
         function animate() {
             requestAnimationFrame(animate);
             const delta = clock.getDelta();
+            const timeElapsed = clock.getElapsedTime();
 
-            // İtem Animasyonları
-            bootItem.rotation.y += delta * 2;
-            bootItem.position.y = 1 + Math.sin(clock.getElapsedTime() * 3) * 0.15;
+            // Çekirdek İtem Döndürme
+            bootItem.rotation.x += delta * 2; bootItem.rotation.y += delta * 1.5;
+            bootItem.position.y = 1.5 + Math.sin(timeElapsed * 4) * 0.1;
 
-            // Kayan Platform Güncellemesi
+            // Kayan Platform Mekanizmaları
             for(let b of blocks) {
                 if(b.isMoving) {
-                    let offset = Math.sin(clock.getElapsedTime() * 2) * 2;
+                    let offset = Math.sin(timeElapsed * b.speed) * b.range;
                     b.mesh.position.x = b.startX + offset;
-                    b.minX = b.mesh.position.x - 1.25; b.maxX = b.mesh.position.x + 1.25;
+                    b.minX = b.mesh.position.x - (b.mesh.geometry.parameters.width/2);
+                    b.maxX = b.mesh.position.x + (b.mesh.geometry.parameters.width/2);
                 }
             }
 
-            // Temel Karakter Hız Hesaplamaları
-            let currentSpeed = keys['ShiftLeft'] ? 0.14 : 0.08;
+            // Hareket Kontrolü
+            let currentSpeed = keys['ShiftLeft'] ? 0.15 : 0.085;
             let mx = 0, mz = 0;
 
             const forward = new THREE.Vector3(0, 0, -1).applyAxisAngle(new THREE.Vector3(0, 1, 0), camRotY).normalize();
@@ -186,69 +225,72 @@
             if (keys['KeyA']) { mx -= right.x * currentSpeed; mz -= right.z * currentSpeed; }
             if (keys['KeyD']) { mx += right.x * currentSpeed; mz += right.z * currentSpeed; }
 
-            // Herhangi bir hareket veya zıplama dansı iptal eder
+            // Herhangi bir aksiyon dans modunu sıfırlar
             if (mx !== 0 || mz !== 0 || keys['Space']) {
-                isDancing = false;
-                body.position.y = 1.0; head.position.set(0, 1.9, 0);
-                lArm.rotation.z = rArm.rotation.z = 0;
+                danceMode = 0; body.position.y = 1.0; head.position.set(0, 1.9, 0); head.rotation.set(0,0,0);
+                lArm.position.set(-0.55, 1.0, 0); rArm.position.set(0.55, 1.0, 0);
+                lArm.rotation.set(0,0,0); rArm.rotation.set(0,0,0); playerGroup.rotation.z = 0;
             }
 
-            // Poz ve Uzuv Sallama Animasyonları
-            if (!isDancing) {
+            // Dans Değiştiriciler
+            if (keys['KeyG'] && grounded) danceMode = 1;
+            if (keys['KeyH'] && grounded) danceMode = 2;
+            if (keys['KeyJ'] && grounded) danceMode = 3;
+
+            // Uzuv Sallama ve 3 Yeni Robot Dansı Animasyonları
+            if (danceMode === 0) {
                 if ((mx !== 0 || mz !== 0) && grounded) {
-                    let freq = keys['ShiftLeft'] ? 16 : 10;
-                    let wave = Math.sin(clock.getElapsedTime() * freq) * 0.6;
+                    let freq = keys['ShiftLeft'] ? 18 : 11;
+                    let wave = Math.sin(timeElapsed * freq) * 0.6;
                     lLeg.rotation.x = wave; rLeg.rotation.x = -wave;
                     lArm.rotation.x = -wave; rArm.rotation.x = wave;
                 } else if (!grounded) {
-                    lLeg.rotation.x = -0.2; rLeg.rotation.x = 0.2;
-                    lArm.rotation.x = 0.4; rArm.rotation.x = -0.4;
+                    lLeg.rotation.x = -0.3; rLeg.rotation.x = 0.3; lArm.rotation.x = 0.5; rArm.rotation.x = -0.5;
                 } else {
                     lLeg.rotation.x = rLeg.rotation.x = lArm.rotation.x = rArm.rotation.x = 0;
                 }
             } else {
-                // Efsane Dans Animasyonu Mekaniği
-                danceTimer += delta * 20;
-                let hop = Math.sin(danceTimer) * 0.15;
-                body.position.y = 1.0 + hop; head.position.y = 1.9 + hop;
-                head.position.x = Math.cos(danceTimer) * 0.2;
-                lArm.rotation.z = Math.sin(danceTimer) * 1.2; rArm.rotation.z = -Math.sin(danceTimer) * 1.2;
-                lLeg.rotation.x = Math.cos(danceTimer) * 0.5; rLeg.rotation.x = -Math.cos(danceTimer) * 0.5;
+                danceTimer += delta * 15;
+                if (danceMode === 1) { // 1. Robotik Adımlama Dansı
+                    let step = Math.floor(danceTimer) % 4;
+                    body.position.y = 1.0 + (step % 2 * 0.1);
+                    lArm.rotation.x = step === 1 ? -Math.PI/2 : 0;
+                    rArm.rotation.x = step === 3 ? -Math.PI/2 : 0;
+                } else if (danceMode === 2) { // 2. Devre Yakan Kafa Sallama
+                    head.rotation.x = Math.sin(danceTimer * 1.5) * 0.5;
+                    lArm.rotation.z = Math.sin(danceTimer) * 0.8;
+                    rArm.rotation.z = -Math.sin(danceTimer) * 0.8;
+                } else if (danceMode === 3) { // 3. Çılgın Matrix Taklası
+                    playerGroup.rotation.z = Math.sin(danceTimer * 0.5) * Math.PI;
+                    lArm.position.y = 1.3; rArm.position.y = 1.3;
+                }
             }
 
-            if (keys['KeyG'] && grounded) isDancing = true;
-
-            // Fiziksel Pozisyon Değişimi
             playerGroup.position.x += mx; playerGroup.position.z += mz;
             if (mx !== 0 || mz !== 0) playerGroup.rotation.y = Math.atan2(mx, mz);
 
-            // Yerçekimi Kuvveti
+            // Fizik ve Düşüş Hesapları
             velY -= 0.007; playerGroup.position.y += velY;
             let hit = false;
 
-            // Blok Çarpışma Hesaplamaları (Collision)
             for (let b of blocks) {
                 const px = playerGroup.position.x; const py = playerGroup.position.y; const pz = playerGroup.position.z;
                 if (px >= b.minX - 0.4 && px <= b.maxX + 0.4 && pz >= b.minZ - 0.4 && pz <= b.maxZ + 0.4) {
                     if (py <= b.topY && py >= b.topY - 0.4 && velY <= 0) {
                         playerGroup.position.y = b.topY; velY = 0; grounded = true; hit = true;
                         
-                        // Kayan platformun üstündeyken oyuncuyu da sürükle
-                        if(b.isMoving) playerGroup.position.x += Math.sin(clock.getElapsedTime() * 2) * 0.05;
+                        if(b.isMoving) playerGroup.position.x += Math.sin(timeElapsed * b.speed) * 0.05;
 
-                        // Checkpoint Kaydı
                         if (b.isCP && respawnPoint.z !== b.spawn.z) {
                             respawnPoint = { x: b.spawn.x, y: b.spawn.y, z: b.spawn.z };
                             document.getElementById('cp-stat').innerText = `X:${b.spawn.x} Z:${b.spawn.z}`;
-                            playSound(440, 880, 'sine', 0.2);
+                            playSound(300, 600, 'sine', 0.15);
                         }
 
-                        // Bitiş Kontrolü
                         if (b.isFinish) {
-                            playSound(600, 1200, 'sine', 0.5);
-                            alert("TEBRİKLER! PARKURU BİTİRDİNİZ! 🏆");
-                            respawnPoint = { x: 0, y: 0, z: 20 };
-                            playerGroup.position.set(0, 0, 20);
+                            playSound(500, 1500, 'sine', 0.6);
+                            alert("İNANILMAZ! ROBOT MAHMUT MEGA PARKURU FATHETTİ! 🏆 Robot Devreleri Başarıyla Tamamlandı.");
+                            respawnPoint = { x: 0, y: 0, z: 20 }; playerGroup.position.set(0, 0, 20);
                             document.getElementById('cp-stat').innerText = "Yok";
                         }
                         break;
@@ -257,48 +299,39 @@
             }
             if (!hit) grounded = false;
 
-            // Zıplama Emri
-            if (keys['Space'] && grounded && !isDancing) {
-                velY = jumpPower; grounded = false;
-                playSound(150, 300, 'triangle', 0.15);
+            if (keys['Space'] && grounded && danceMode === 0) {
+                velY = jumpPower; grounded = false; playSound(200, 400, 'triangle', 0.12);
             }
 
-            // Süper Ayakkabı İtem Toplama Kontrolü
+            // Çekirdek İtem Algılama
             if (playerGroup.position.distanceTo(bootItem.position) < 1.2 && powerUpTimer <= 0) {
-                jumpPower = 0.24; powerUpTimer = 5.0;
-                playSound(300, 600, 'sine', 0.3);
+                jumpPower = 0.23; powerUpTimer = 6.0; playSound(400, 800, 'sine', 0.25);
                 document.getElementById('power-bar').style.display = 'block';
             }
 
-            // Eşya Süre Sayacı Yönetimi
             if (powerUpTimer > 0) {
                 powerUpTimer -= delta;
-                document.getElementById('power-fill').style.width = (powerUpTimer / 5.0) * 100 + '%';
-                if (powerUpTimer <= 0) {
-                    jumpPower = 0.16;
-                    document.getElementById('power-bar').style.display = 'none';
-                }
+                document.getElementById('power-fill').style.width = (powerUpTimer / 6.0) * 100 + '%';
+                if (powerUpTimer <= 0) { jumpPower = 0.16; document.getElementById('power-bar').style.display = 'none'; }
             }
 
-            // Lav Boşluğuna Düşüş Kontrolü
+            // Lava Çakılma Kontrolü
             if (playerGroup.position.y < -15) {
                 deaths++; document.getElementById('deaths').innerText = deaths;
-                playSound(120, 60, 'sawtooth', 0.25);
+                playSound(150, 70, 'sawtooth', 0.3);
                 playerGroup.position.set(respawnPoint.x, respawnPoint.y, respawnPoint.z);
                 velY = 0; grounded = true;
             }
 
-            // 3. Şahıs Kamera Takip Sistemi (Kameranın Karakteri İzlemesi)
+            // Kamera İzleme Mekanizması
             const cx = playerGroup.position.x - Math.sin(camRotY) * Math.cos(camRotX) * 7;
             const cy = playerGroup.position.y + 2.0 + Math.sin(camRotX) * 7;
             const cz = playerGroup.position.z - Math.cos(camRotY) * Math.cos(camRotX) * 7;
-            camera.position.set(cx, cy, cz);
-            camera.lookAt(playerGroup.position.x, playerGroup.position.y + 1.0, playerGroup.position.z);
+            camera.position.set(cx, cy, cz); camera.lookAt(playerGroup.position.x, playerGroup.position.y + 1.0, playerGroup.position.z);
 
             renderer.render(scene, camera);
         }
 
-        // Ekran Yeniden Boyutlandırma Adaptasyonu
         window.addEventListener('resize', () => {
             camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
