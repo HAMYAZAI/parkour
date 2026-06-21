@@ -2,11 +2,11 @@
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
-    <title>Minecraft Web Parkur - Fix</title>
+    <title>Minecraft & Roblox Web Parkur</title>
     <style>
-        body { margin: 0; overflow: hidden; font-family: 'Courier New', Courier, monospace; }
+        body { margin: 0; overflow: hidden; font-family: 'Courier New', Courier, monospace; user-select: none; }
         #ui { position: absolute; top: 10px; left: 10px; color: #fff; background: rgba(0,0,0,0.85); padding: 15px; border-radius: 5px; border: 2px solid #555; pointer-events: none; }
-        h3 { margin: 0 0 10px 0; color: #55ff55; }
+        h3 { margin: 0 0 10px 0; color: #55ff55; text-shadow: 1px 1px #000; }
         p { margin: 5px 0; font-size: 14px; }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -14,92 +14,137 @@
 <body>
 
     <div id="ui">
-        <h3>MINECRAFT WEB PARKUR</h3>
+        <h3>CRAFT-BOX PARKUR</h3>
         <p><b>HAREKET:</b> W, A, S, D</p>
-        <p><b>ZIPLAMA:</b> SPACE (Boşluk)</p>
-        <p><b>DEPAR:</b> SHIFT</p>
-        <p><b>DANS ET:</b> G Tuşu</p>
+        <p><b>KAMERA:</b> SAĞ TIKLA BASILI TUT + MOUSE DÖNDÜR</p>
+        <p><b>ZIPLAMA:</b> SPACE</p>
+        <p><b>DEPAR:</b> SHIFT | <b>DANS:</b> G</p>
         <hr style="border-color: #444;">
-        <p id="checkpoint-text" style="color: #55ff55; font-weight: bold;">Durum: Oyuna Hazır!</p>
+        <p id="checkpoint-text" style="color: #55ff55; font-weight: bold;">Durum: Başlamaya Hazır!</p>
     </div>
 
     <script>
         // --- 1. SAHNE VE KAMERA ---
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x87CEEB); 
+        scene.background = new THREE.Color(0x7ec0ee); // Gökyüzü
 
-        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         document.body.appendChild(renderer.domElement);
 
         // Işıklar
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
         scene.add(ambientLight);
         const dirLight = new THREE.DirectionalLight(0xffffff, 0.6);
-        dirLight.position.set(10, 20, 15);
+        dirLight.position.set(20, 40, 20);
         scene.add(dirLight);
 
-        // --- 2. BLOK OLUŞTURMA SİSTEMİ ---
-        const blocks = [];
-        const checkpoints = [{ x: 0, y: 0.5, z: -22 }]; 
+        // --- 2. DİNAMİK PIXELLI TEXTURE PACK GENERATOR ---
+        // İnternetten resim yüklemek yerine kodla Minecraft tarzı pikselli dokular üretiyoruz
+        function createPixelTexture(baseColor, noiseColor, size = 16) {
+            const canvas = document.createElement('canvas');
+            canvas.width = size;
+            canvas.height = size;
+            const ctx = canvas.getContext('2d');
+            
+            ctx.fillStyle = baseColor;
+            ctx.fillRect(0, 0, size, size);
+            
+            // Rastgele pikseller ekleyerek Minecraft dokusu havası veriyoruz
+            for (let x = 0; x < size; x++) {
+                for (let y = 0; y < size; y++) {
+                    if (Math.random() > 0.6) {
+                        ctx.fillStyle = noiseColor;
+                        ctx.fillRect(x, y, 1, 1);
+                    }
+                }
+            }
+            
+            // Blok kenarlarına gölge çizgisi
+            ctx.strokeStyle = 'rgba(0,0,0,0.15)';
+            ctx.strokeRect(0, 0, size, size);
 
-        function createBlock(x, y, z, w, h, d, hexColor) {
+            const texture = new THREE.CanvasTexture(canvas);
+            texture.magFilter = THREE.NearestFilter; // Piksellerin bulanıklaşmasını önler (Retro durur)
+            texture.minFilter = THREE.NearestFilter;
+            return texture;
+        }
+
+        // Dokuları Oluşturma
+        const grassTex = createPixelTexture('#5cc43c', '#4da332'); // Çimen
+        const stoneTex = createPixelTexture('#737373', '#5a5a5a'); // Taş
+        const cpTex = createPixelTexture('#ff9900', '#cc7a00');    // Checkpoint
+        const lavaTex = createPixelTexture('#ff3300', '#ff6600');  // Lav
+        const skinTex = createPixelTexture('#ffdbb5', '#e0bfa2');  // Ten
+
+        // --- 3. HARİTA İNŞASI ---
+        const blocks = [];
+        const checkpoints = [{ x: 0, y: 0.5, z: -22 }];
+
+        function createBlock(x, y, z, w, h, d, texture, isLava = false) {
             const geometry = new THREE.BoxGeometry(w, h, d);
-            const material = new THREE.MeshLambertMaterial({ color: hexColor });
+            const material = new THREE.MeshLambertMaterial({ map: texture });
             const mesh = new THREE.Mesh(geometry, material);
             mesh.position.set(x, y, z);
             scene.add(mesh);
             
-            // Çarpışma sınırlarını önceden hesaplayıp kaydediyoruz
             blocks.push({
-                mesh: mesh,
-                minX: x - w/2, maxX: x + w/2,
-                minY: y + h/2, // Bloğun üst yüzeyinin Y koordinatı
-                minZ: z - d/2, maxZ: z + d/2,
-                color: hexColor
+                mesh: mesh, minX: x - w/2, maxX: x + w/2,
+                minY: y + h/2, minZ: z - d/2, maxZ: z + d/2,
+                texture: texture, isLava: isLava
             });
             return mesh;
         }
 
-        const YEŞİL = 0x55ff55;
-        const GRİ = 0x888888;
-        const TURUNCU = 0xffaa00; 
-        const LAV = 0xff3300;
+        // Dünyayı Kuruyoruz
+        createBlock(0, -1, 0, 6, 2, 6, grassTex);       // Başlangıç
+        createBlock(0, 0, -8, 2, 2, 2, stoneTex);       // 1. Taş Blok
+        createBlock(3, 1, -15, 2, 2, 2, stoneTex);      // 2. Taş Blok
+        createBlock(0, 2, -22, 4, 2, 4, cpTex);         // CHECKPOINT
+        createBlock(-4, 3, -30, 2, 2, 2, stoneTex);     // Zorlu Blok
+        createBlock(0, 4, -37, 4, 2, 4, grassTex);     // Bitiş Platformu
 
-        // Harita Blokları (Yükseklikleri artırdım ki basması kolay olsun)
-        createBlock(0, -1, 0, 6, 2, 6, YEŞİL);       // Başlangıç Platformu
-        createBlock(0, 0, -8, 2, 2, 2, GRİ);        // 1. Zıplama Noktası
-        createBlock(3, 1, -15, 2, 2, 2, GRİ);       // 2. Zıplama Noktası
-        createBlock(0, 2, -22, 4, 2, 4, TURUNCU);    // CHECKPOINT BLOĞU
-        createBlock(-4, 3, -30, 2, 2, 2, GRİ);      // Zorlu Blok
-        createBlock(0, 4, -37, 4, 2, 4, YEŞİL);      // Bitiş Platformu
+        // Dev Lav Denizi
+        createBlock(0, -20, -15, 400, 1, 400, lavaTex, true);
 
-        // Lav Denizi (Çok daha aşağıda)
-        createBlock(0, -20, -15, 300, 1, 300, LAV);
-
-        // --- 3. OYUNCU KARAKTERİ ---
+        // --- 4. OYUNCU KARAKTERİ (Gelişmiş Doku ve Yüz) ---
         const playerGroup = new THREE.Group();
         
-        // Gövde
+        // Gövde (Mavi Tişörtlü)
         const bodyGeo = new THREE.BoxGeometry(1, 1.4, 0.6);
-        const bodyMat = new THREE.MeshLambertMaterial({ color: 0x00aaff });
+        const bodyMat = new THREE.MeshLambertMaterial({ map: createPixelTexture('#00aaff', '#0088cc') });
         const body = new THREE.Mesh(bodyGeo, bodyMat);
         body.position.y = 0.7;
         playerGroup.add(body);
 
-        // Kafa
+        // Kafa (Yüz Detaylı)
         const headGeo = new THREE.BoxGeometry(0.6, 0.6, 0.6);
-        const headMat = new THREE.MeshLambertMaterial({ color: 0xffcc99 });
-        const head = new THREE.Mesh(headGeo, headMat);
+        const headMaterials = [
+            new THREE.MeshLambertMaterial({ map: skinTex }), // sağ
+            new THREE.MeshLambertMaterial({ map: skinTex }), // sol
+            new THREE.MeshLambertMaterial({ map: skinTex }), // üst
+            new THREE.MeshLambertMaterial({ map: skinTex }), // alt
+            // ÖN YÜZ (Gözler ve Ağız için özel piksel çizmeli)
+            new THREE.MeshLambertMaterial({ map: (function(){
+                const canvas = document.createElement('canvas'); canvas.width = 16; canvas.height = 16;
+                const ctx = canvas.getContext('2d');
+                ctx.fillStyle = '#ffdbb5'; ctx.fillRect(0,0,16,16); // ten rengi
+                ctx.fillStyle = '#fff'; ctx.fillRect(2,5,3,2); ctx.fillRect(11,5,3,2); // göz beyazı
+                ctx.fillStyle = '#422', ctx.fillRect(3,5,2,2); ctx.fillRect(11,5,2,2); // göz bebeği
+                ctx.fillStyle = '#aa4444'; ctx.fillRect(5,10,6,2); // ağız
+                const tex = new THREE.CanvasTexture(canvas); tex.magFilter = THREE.NearestFilter; return tex;
+            })() }),
+            new THREE.MeshLambertMaterial({ map: skinTex })  // arka
+        ];
+        const head = new THREE.Mesh(headGeo, headMaterials);
         head.position.y = 1.7;
         playerGroup.add(head);
 
-        // DOĞMA NOKTASI: Tam olarak ilk bloğun üstü (Y = 0)
         playerGroup.position.set(0, 0, 0); 
         scene.add(playerGroup);
 
-        // --- 4. KONTROLLER ---
+        // --- 5. ROBLOX TARZI KAMERA VE KONTROL SİSTEMİ ---
         const keys = {};
         let velocityY = 0; 
         let isGrounded = true;
@@ -107,18 +152,45 @@
         let danceTimer = 0;
         let hasCheckpoint = false;
 
+        // Kamera Açıları (Roblox mantığı)
+        let camRotationX = 0; // Yukarı-Aşağı bakış
+        let camRotationY = 0; // Sağ-Sol döngüsü
+        let isRightMouseDown = false;
+        let camDistance = 7;   // Karakterden uzaklık
+
         window.addEventListener('keydown', (e) => { keys[e.code] = true; });
         window.addEventListener('keyup', (e) => { keys[e.code] = false; });
 
-        // --- 5. OYUN DÖNGÜSÜ ---
+        // Sağ tık menüsünü engelle (Roblox'taki gibi rahat dönsün diye)
+        window.addEventListener('contextmenu', e => e.preventDefault());
+
+        window.addEventListener('mousedown', (e) => {
+            if (e.button === 2) isRightMouseDown = true; // Sağ tık basıldı
+        });
+
+        window.addEventListener('mouseup', (e) => {
+            if (e.button === 2) isRightMouseDown = false; // Sağ tık bırakıldı
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            if (isRightMouseDown) {
+                // Fare hareketine göre kamera açılarını değiştir
+                camRotationY -= e.movementX * 0.005;
+                camRotationX -= e.movementY * 0.005;
+                
+                // Yukarı aşağı bakış sınırları (Kamera takla atmasın)
+                camRotationX = Math.max(-Math.PI/3, Math.min(Math.PI/4, camRotationX));
+            }
+        });
+
+        // --- 6. OYUN DÖNGÜSÜ ---
         const clock = new THREE.Clock();
 
         function animate() {
             requestAnimationFrame(animate);
             const delta = clock.getDelta();
 
-            // Karakter hızları
-            let speed = keys['ShiftLeft'] ? 0.14 : 0.08; 
+            let speed = keys['ShiftLeft'] ? 0.15 : 0.08; 
             let moveX = 0;
             let moveZ = 0;
 
@@ -129,16 +201,21 @@
             }
 
             if (!isDancing) {
-                if (keys['KeyW']) moveZ -= speed;
-                if (keys['KeyS']) moveZ += speed;
-                if (keys['KeyA']) moveX -= speed;
-                if (keys['KeyD']) moveX += speed;
+                // Kameranın baktığı açıya göre hareket yönünü hesapla
+                const forward = new THREE.Vector3(0, 0, -1).applyAxisAngle(new THREE.Vector3(0, 1, 0), camRotationY);
+                const right = new THREE.Vector3(1, 0, 0).applyAxisAngle(new THREE.Vector3(0, 1, 0), camRotationY);
+
+                if (keys['KeyW']) { moveX += forward.x * speed; moveZ += forward.z * speed; }
+                if (keys['KeyS']) { moveX -= forward.x * speed; moveZ -= forward.z * speed; }
+                if (keys['KeyA']) { moveX -= right.x * speed; moveZ -= right.z * speed; }
+                if (keys['KeyD']) { moveX += right.x * speed; moveZ += right.z * speed; }
 
                 playerGroup.position.x += moveX;
                 playerGroup.position.z += moveZ;
 
+                // Karakter hareket ediyorsa bastığı yöne baksın
                 if (moveX !== 0 || moveZ !== 0) {
-                    playerGroup.rotation.y = Math.atan2(-moveX, -moveZ);
+                    playerGroup.rotation.y = Math.atan2(moveX, moveZ);
                 }
             } else {
                 danceTimer += delta * 15;
@@ -146,11 +223,9 @@
                 head.position.x = Math.cos(danceTimer) * 0.2;
             }
 
-            if (keys['KeyG'] && isGrounded) {
-                isDancing = true;
-            }
+            if (keys['KeyG'] && isGrounded) isDancing = true;
 
-            // Yerçekimi İvmesi (Daha yumuşak)
+            // Fizik ve Yerçekimi
             velocityY -= 0.008; 
             playerGroup.position.y += velocityY;
             
@@ -159,19 +234,17 @@
             const py = playerGroup.position.y;
             const pz = playerGroup.position.z;
 
-            // GELİŞTİRİLMİŞ KESİN ÇARPIŞMA TESTİ
             for (let block of blocks) {
                 if (px >= block.minX - 0.4 && px <= block.maxX + 0.4 &&
                     pz >= block.minZ - 0.4 && pz <= block.maxZ + 0.4) {
                     
-                    // Oyuncu bloğun üst yüzeyine yakınsa veya altına düşmek üzereyse yakala
                     if (py <= block.minY && py >= block.minY - 0.5) {
                         playerGroup.position.y = block.minY;
                         velocityY = 0;
                         isGrounded = true;
                         hitAnyBlock = true;
 
-                        if (block.color === TURUNCU) {
+                        if (block.texture === cpTex) {
                             hasCheckpoint = true;
                             document.getElementById('checkpoint-text').innerText = "Durum: Checkpoint Kaydedildi!";
                             document.getElementById('checkpoint-text').style.color = "#ffaa00";
@@ -181,17 +254,14 @@
                 }
             }
 
-            if (!hitAnyBlock) {
-                isGrounded = false;
-            }
+            if (!hitAnyBlock) isGrounded = false;
 
-            // Zıplama
             if (keys['Space'] && isGrounded && !isDancing) {
                 velocityY = 0.18; 
                 isGrounded = false;
             }
 
-            // Lava düşme kontrolü
+            // Düştüğünde Yeniden Doğma
             if (playerGroup.position.y < -10) {
                 if (hasCheckpoint) {
                     playerGroup.position.set(checkpoints[0].x, checkpoints[0].y, checkpoints[0].z);
@@ -202,9 +272,14 @@
                 isGrounded = true;
             }
 
-            // Kamera Takibi
-            camera.position.set(playerGroup.position.x, playerGroup.position.y + 3, playerGroup.position.z + 6);
-            camera.lookAt(playerGroup.position.x, playerGroup.position.y + 1, playerGroup.position.z);
+            // --- ROBLOX TARZI KAMERA HESAPLAMASI ---
+            // Kamerayı karakterin etrafında küresel (spherical) olarak döndürüyoruz
+            const targetX = playerGroup.position.x - Math.sin(camRotationY) * Math.cos(camRotationX) * camDistance;
+            const targetY = playerGroup.position.y + 2.5 + Math.sin(camRotationX) * camDistance;
+            const targetZ = playerGroup.position.z - Math.cos(camRotationY) * Math.cos(camRotationX) * camDistance;
+
+            camera.position.set(targetX, targetY, targetZ);
+            camera.lookAt(playerGroup.position.x, playerGroup.position.y + 1.2, playerGroup.position.z);
 
             renderer.render(scene, camera);
         }
