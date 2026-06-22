@@ -32,7 +32,7 @@
     <div id="ui">
         <h3>HAMYAZPARKOUR v15</h3>
         <p style="color: #ffcc00; font-weight: bold;">-> PC: 2 TUŞU İLE KUZENLE OYNA <-</p>
-        <p><b>P1:</b> W,A,S,D / Mobil Joystick</p>
+        <p><b>P1:</b> S (İleri), W (Geri), D (Sol), A (Sağ)</p>
         <p><b>P2:</b> Yön Okları | Num0 veya Sağ Shift</p>
         <p><b>SAHA:</b> Başlangıç adasının hemen SAĞINDA birleşik!</p>
         <p><b>HİLE:</b> H + M + Z ile UÇ! (5 Saniye Sürer)</p>
@@ -547,7 +547,6 @@
                 makeDance1(p1, totalTime); makeDance1(p2, totalTime);
             } else {
                 let mx1 = 0, mz1 = 0;
-                // W-S TERS YÖN DÜZELTMESİ (Yönler kameraya göre ayarlandı)
                 const forward = new THREE.Vector3(0, 0, -1).applyAxisAngle(new THREE.Vector3(0, 1, 0), camRotY).normalize();
                 const right = new THREE.Vector3(1, 0, 0).applyAxisAngle(new THREE.Vector3(0, 1, 0), camRotY).normalize();
 
@@ -557,15 +556,17 @@
                     mz1 += (forward.z * -joyMoveY + right.z * joyMoveX) * mSpeed;
                 } else {
                     let speed1 = keys['ShiftLeft'] ? 0.14 : 0.08;
-                    if(keys['KeyW']) { mx1 += forward.x * speed1; mz1 += forward.z * speed1; }
-                    if(keys['KeyS']) { mx1 -= forward.x * speed1; mz1 -= forward.z * speed1; }
-                    if(keys['KeyA']) { mx1 -= right.x * speed1; mz1 -= right.z * speed1; }
-                    if(keys['KeyD']) { mx1 += right.x * speed1; mz1 += right.z * speed1; }
+                    // BÜTÜN YÖNLER DSAW OLACAK ŞEKİLDE TAM TERSİNE ÇEVRİLDİ
+                    if(keys['KeyS']) { mx1 += forward.x * speed1; mz1 += forward.z * speed1; } // S -> İleri
+                    if(keys['KeyW']) { mx1 -= forward.x * speed1; mz1 -= forward.z * speed1; } // W -> Geri
+                    if(keys['KeyD']) { mx1 -= right.x * speed1; mz1 -= right.z * speed1; }     // D -> Sol
+                    if(keys['KeyA']) { mx1 += right.x * speed1; mz1 += right.z * speed1; }     // A -> Sağ
                 }
 
                 let mx2 = 0, mz2 = 0;
                 if(coOpModeActive && !isMobile) {
                     let speed2 = 0.08;
+                    // Kuzen için de yön okları ters istiyorsan burayı da değiştirebiliriz, şu an orijinal ok yönlerinde.
                     if(keys['ArrowUp']) { mx2 += forward.x * speed2; mz2 += forward.z * speed2; }
                     if(keys['ArrowDown']) { mx2 -= forward.x * speed2; mz2 -= forward.z * speed2; }
                     if(keys['ArrowLeft']) { mx2 -= right.x * speed2; mz2 -= right.z * speed2; }
@@ -610,7 +611,6 @@
                 });
             }
 
-            // KAMERA SİYAH EKRAN HATASI DÜZELTİLDİ (Hem mobilde hem PC'de kamera karakteri arkadan izliyor)
             camera.position.x = p1.mesh.position.x - Math.sin(camRotY) * 6;
             camera.position.z = p1.mesh.position.z - Math.cos(camRotY) * 6;
             camera.position.y = p1.mesh.position.y + 3 + Math.sin(camRotX) * 3;
