@@ -1,4 +1,4 @@
-<<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
@@ -240,7 +240,7 @@
         function triggerFlyMode() {
             if(!p1.isFlying) {
                 p1.isFlying = true;
-                p1.flyTimer = 5.0; // 5 saniye uçuş süresi
+                p1.flyTimer = 5.0; 
                 p1.velY = 0;
                 playSound(400, 600, 'sine', 0.2);
                 document.getElementById('fly-overlay').style.display = 'block';
@@ -261,7 +261,7 @@
         }
 
         // --- DANS FONKSİYONLARI ---
-        function makeDance1(p, time) { // HELİKOPTER SPİN DANS
+        function makeDance1(p, time) { 
             p.lArm.rotation.z = -Math.PI / 2;
             p.rArm.rotation.z = Math.PI / 2;
             p.mesh.rotation.y = time * 15;
@@ -269,7 +269,7 @@
             p.rLeg.rotation.x = -Math.sin(time*25)*0.3;
         }
 
-        function makeDance2(p, time) { // MATRIX DALGA DANSI
+        function makeDance2(p, time) { 
             p.lArm.rotation.z = Math.sin(time*10)*0.5;
             p.rArm.rotation.z = -Math.sin(time*10)*0.5;
             p.mesh.rotation.x = Math.sin(time*8)*0.4;
@@ -277,7 +277,7 @@
             p.rLeg.rotation.x = -Math.sin(time*10)*0.2;
         }
 
-        function makeDance3(p, time) { // BREAKDANCE YAN ADIMLAR
+        function makeDance3(p, time) { 
             p.mesh.position.x += Math.sin(time*12)*0.02;
             p.lArm.rotation.x = Math.sin(time*20)*1.2;
             p.rArm.rotation.x = -Math.sin(time*20)*1.2;
@@ -285,7 +285,7 @@
             p.rLeg.rotation.z = -0.2;
         }
 
-        function makeDance4(p, time) { // ROBOT DANSI (Sert Keskin Hareketler)
+        function makeDance4(p, time) { 
             let step = Math.floor(time * 4) % 4;
             if(step === 0) { p.lArm.rotation.z = Math.PI/3; p.rArm.rotation.x = 0; }
             else if(step === 1) { p.lArm.rotation.z = 0; p.rArm.rotation.x = Math.PI/2; }
@@ -399,10 +399,6 @@
                 return; 
             }
 
-            // PC için H+M+Z Kombinasyonu Kontrolü veya Mobil Uçuş Tetikleyicisi
-            let checkFlyKeys = (p === p1 && keys['KeyH'] && keys['KeyM'] && keys['KeyZ']);
-            if(checkFlyKeys) triggerFlyMode();
-
             if (p.isFlying) {
                 p.flyTimer -= delta;
                 if(p.flyTimer <= 0) {
@@ -501,6 +497,11 @@
                 }
             }
 
+            // H+M+Z Kombinasyonu Kontrolü
+            if(keys['KeyH'] && keys['KeyM'] && keys['KeyZ']) {
+                triggerFlyMode();
+            }
+
             // --- BALL LOGIC ---
             ball.position.x += ballVelX;
             ball.position.z += ballVelZ;
@@ -546,6 +547,7 @@
                 makeDance1(p1, totalTime); makeDance1(p2, totalTime);
             } else {
                 let mx1 = 0, mz1 = 0;
+                // W-S TERS YÖN DÜZELTMESİ (Yönler kameraya göre ayarlandı)
                 const forward = new THREE.Vector3(0, 0, -1).applyAxisAngle(new THREE.Vector3(0, 1, 0), camRotY).normalize();
                 const right = new THREE.Vector3(1, 0, 0).applyAxisAngle(new THREE.Vector3(0, 1, 0), camRotY).normalize();
 
@@ -608,16 +610,11 @@
                 });
             }
 
-            // KAMERA TAKİBİ
-            if (!isMobile) {
-                camera.position.x = p1.mesh.position.x - Math.sin(camRotY) * 6;
-                camera.position.z = p1.mesh.position.z - Math.cos(camRotY) * 6;
-                camera.position.y = p1.mesh.position.y + 3 + Math.sin(camRotX) * 3;
-                camera.lookAt(p1.mesh.position.x, p1.mesh.position.y + 1, p1.mesh.position.z);
-            } else {
-                camera.position.set(p1.mesh.position.x, p1.mesh.position.y + 7, p1.mesh.position.z + 8);
-                camera.lookAt(p1.mesh.position);
-            }
+            // KAMERA SİYAH EKRAN HATASI DÜZELTİLDİ (Hem mobilde hem PC'de kamera karakteri arkadan izliyor)
+            camera.position.x = p1.mesh.position.x - Math.sin(camRotY) * 6;
+            camera.position.z = p1.mesh.position.z - Math.cos(camRotY) * 6;
+            camera.position.y = p1.mesh.position.y + 3 + Math.sin(camRotX) * 3;
+            camera.lookAt(p1.mesh.position.x, p1.mesh.position.y + 1, p1.mesh.position.z);
 
             renderer.render(scene, camera);
         }
