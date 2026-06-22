@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<<!DOCTYPE html>
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
@@ -14,6 +14,7 @@
         
         #crosshair { position: absolute; top: 50%; left: 50%; width: 10px; height: 10px; background: rgba(255,255,255,0.4); border-radius: 50%; transform: translate(-50%, -50%); pointer-events: none; }
         #goal-overlay { position: absolute; top: 30%; left: 50%; transform: translate(-50%, -50%); font-size: 48px; color: #ffcc00; font-weight: bold; background: rgba(0,0,0,0.8); padding: 20px 40px; border: 4px solid #fff; border-radius: 10px; display: none; z-index: 100; text-shadow: 3px 3px #ff0000; text-align: center; pointer-events: none; }
+        #fly-overlay { position: absolute; bottom: 180px; left: 50%; transform: translateX(-50%); font-size: 20px; color: #ff3333; font-weight: bold; background: rgba(0,0,0,0.8); padding: 10px 20px; border: 2px solid #ff3333; border-radius: 5px; display: none; z-index: 90; text-align: center; pointer-events: none; }
 
         /* MOBİL */
         #joystick-zone { position: absolute; bottom: 40px; left: 40px; width: 120px; height: 120px; background: rgba(255,255,255,0.15); border: 3px solid rgba(255,255,255,0.5); border-radius: 50%; display: none; touch-action: none; z-index: 20; }
@@ -26,6 +27,7 @@
 
     <div id="crosshair"></div>
     <div id="goal-overlay">⚽ GOOOL! ⚽</div>
+    <div id="fly-overlay">🚀 UÇMA MODU AKTİF! (5s)</div>
 
     <div id="ui">
         <h3>HAMYAZPARKOUR v15</h3>
@@ -33,8 +35,8 @@
         <p><b>P1:</b> W,A,S,D / Mobil Joystick</p>
         <p><b>P2:</b> Yön Okları | Num0 veya Sağ Shift</p>
         <p><b>SAHA:</b> Başlangıç adasının hemen SAĞINDA birleşik!</p>
-        <p><b>HİLE:</b> H + M + Z ile UÇ!</p>
-        <p><b>DANS:</b> G ile Dans 1 | F ile Dans 2</p>
+        <p><b>HİLE:</b> H + M + Z ile UÇ! (5 Saniye Sürer)</p>
+        <p><b>DANS:</b> G, F, V, B tuşları ile Dans Et!</p>
         <hr style="border-color: #444;">
         <p id="checkpoint-text" style="color: #55ff55; font-weight: bold;">Saha Adaya Birleştirildi!</p>
     </div>
@@ -223,7 +225,7 @@
                 mesh: group, lLeg:lLeg, rLeg:rLeg, lArm:lArm, rArm:rArm, 
                 velY:0, grounded:true, deaths:0, goals:0, cp:{x:0,y:0,z:15}, 
                 jumpPower:0.16, targetBlockIdx: parkurStartIndex, tag: name, jumpCount: 0,
-                danceTimer: 0, danceType: 0, isFlying: false
+                danceTimer: 0, danceType: 0, isFlying: false, flyTimer: 0
             };
         }
 
@@ -234,6 +236,16 @@
         const bot2 = createCharacter("Mahmut 3", cloth3, false); bot2.mesh.position.set(4, 0, 12);
 
         let coOpModeActive = false; 
+
+        function triggerFlyMode() {
+            if(!p1.isFlying) {
+                p1.isFlying = true;
+                p1.flyTimer = 5.0; // 5 saniye uçuş süresi
+                p1.velY = 0;
+                playSound(400, 600, 'sine', 0.2);
+                document.getElementById('fly-overlay').style.display = 'block';
+            }
+        }
 
         function toggleCoOp() {
             if(isMobile) return; 
@@ -249,20 +261,37 @@
         }
 
         // --- DANS FONKSİYONLARI ---
-        function makeDance1(p, time) {
-            p.lArm.rotation.z = -Math.PI / 2 + Math.sin(time*25)*0.3;
-            p.rArm.rotation.z = Math.PI / 2 + Math.sin(time*25)*0.3;
-            p.mesh.rotation.y = time * 10;
-            p.lLeg.rotation.x = Math.sin(time*25)*0.5; 
-            p.rLeg.rotation.x = -Math.sin(time*25)*0.5;
+        function makeDance1(p, time) { // HELİKOPTER SPİN DANS
+            p.lArm.rotation.z = -Math.PI / 2;
+            p.rArm.rotation.z = Math.PI / 2;
+            p.mesh.rotation.y = time * 15;
+            p.lLeg.rotation.x = Math.sin(time*25)*0.3; 
+            p.rLeg.rotation.x = -Math.sin(time*25)*0.3;
         }
 
-        function makeDance2(p, time) {
-            p.lArm.rotation.z = Math.sin(time*20)*0.8;
-            p.rArm.rotation.z = -Math.sin(time*20)*0.8;
-            p.mesh.rotation.x = Math.sin(time*15)*0.3;
-            p.lLeg.rotation.z = Math.sin(time*20)*0.4;
-            p.rLeg.rotation.z = -Math.sin(time*20)*0.4;
+        function makeDance2(p, time) { // MATRIX DALGA DANSI
+            p.lArm.rotation.z = Math.sin(time*10)*0.5;
+            p.rArm.rotation.z = -Math.sin(time*10)*0.5;
+            p.mesh.rotation.x = Math.sin(time*8)*0.4;
+            p.lLeg.rotation.x = Math.sin(time*10)*0.2;
+            p.rLeg.rotation.x = -Math.sin(time*10)*0.2;
+        }
+
+        function makeDance3(p, time) { // BREAKDANCE YAN ADIMLAR
+            p.mesh.position.x += Math.sin(time*12)*0.02;
+            p.lArm.rotation.x = Math.sin(time*20)*1.2;
+            p.rArm.rotation.x = -Math.sin(time*20)*1.2;
+            p.lLeg.rotation.z = 0.2;
+            p.rLeg.rotation.z = -0.2;
+        }
+
+        function makeDance4(p, time) { // ROBOT DANSI (Sert Keskin Hareketler)
+            let step = Math.floor(time * 4) % 4;
+            if(step === 0) { p.lArm.rotation.z = Math.PI/3; p.rArm.rotation.x = 0; }
+            else if(step === 1) { p.lArm.rotation.z = 0; p.rArm.rotation.x = Math.PI/2; }
+            else if(step === 2) { p.lArm.rotation.x = -Math.PI/4; p.rArm.rotation.z = -Math.PI/3; }
+            else { p.lArm.rotation.x = 0; p.rArm.rotation.z = 0; }
+            p.lLeg.rotation.x = 0; p.rLeg.rotation.x = 0;
         }
 
         // --- CONTROLS ---
@@ -281,12 +310,10 @@
                 else if (p2.jumpCount === 1) { p2.velY = p2.jumpPower * 0.95; p2.jumpCount = 2; playSound(245, 485, 'sine', 0.12); }
             }
             
-            if (e.code === 'KeyG' && p1.danceTimer <= 0) {
-                p1.danceTimer = 5.0; p1.danceType = 1; playSound(300, 400, 'sine', 0.1);
-            }
-            if (e.code === 'KeyF' && p1.danceTimer <= 0) {
-                p1.danceTimer = 5.0; p1.danceType = 2; playSound(250, 350, 'sine', 0.1);
-            }
+            if (e.code === 'KeyG' && p1.danceTimer <= 0) { p1.danceTimer = 5.0; p1.danceType = 1; playSound(300, 400, 'sine', 0.1); }
+            if (e.code === 'KeyF' && p1.danceTimer <= 0) { p1.danceTimer = 5.0; p1.danceType = 2; playSound(250, 350, 'sine', 0.1); }
+            if (e.code === 'KeyV' && p1.danceTimer <= 0) { p1.danceTimer = 5.0; p1.danceType = 3; playSound(280, 380, 'sine', 0.1); }
+            if (e.code === 'KeyB' && p1.danceTimer <= 0) { p1.danceTimer = 5.0; p1.danceType = 4; playSound(320, 220, 'sine', 0.1); }
             
             keys[e.code]=true; 
             if(e.code === 'Digit2') toggleCoOp();
@@ -304,4 +331,298 @@
         // MOBIL CONTROLS
         let joyTouchId = null; let camTouchId = null;
         let joyStartX = 0, joyStartY = 0; let joyMoveX = 0, joyMoveY = 0;
-        let prevCamTouchX = 0, prevCamTouchY =
+        let prevCamTouchX = 0, prevCamTouchY = 0;
+        const jZone = document.getElementById('joystick-zone'), jStick = document.getElementById('joystick-stick'), jBtn = document.getElementById('jump-btn');
+
+        jBtn.addEventListener('touchstart', (e) => {
+            e.preventDefault(); if(audioCtx.state==='suspended') audioCtx.resume();
+            
+            mobileJumpCount++;
+            mobileJumpTimer = 0.3;
+            
+            if(mobileJumpCount === 3) {
+                triggerFlyMode();
+                mobileJumpCount = 0;
+                return;
+            }
+            
+            if(p1.danceTimer > 0) return;
+            if (p1.grounded) { p1.velY = p1.jumpPower; p1.grounded = false; p1.jumpCount = 1; playSound(120, 280, 'triangle', 0.15); }
+            else if (p1.jumpCount === 1) { p1.velY = p1.jumpPower * 0.95; p1.jumpCount = 2; playSound(240, 480, 'sine', 0.12); }
+        });
+
+        window.addEventListener('touchstart', (e) => {
+            if (!isMobile) return;
+            for (let t of e.changedTouches) {
+                if (t.clientX < window.innerWidth / 2 && joyTouchId === null) {
+                    const rect = jZone.getBoundingClientRect(); joyStartX = rect.left + rect.width / 2; joyStartY = rect.top + rect.height / 2; joyTouchId = t.identifier;
+                } else if (t.clientX >= window.innerWidth / 2 && t.clientY < window.innerHeight - 150 && camTouchId === null) {
+                    camTouchId = t.identifier; prevCamTouchX = t.clientX; prevCamTouchY = t.clientY;
+                }
+            }
+        });
+        window.addEventListener('touchmove', (e) => {
+            if (!isMobile) return;
+            for (let t of e.touches) {
+                if (t.identifier === joyTouchId) {
+                    let dx = t.clientX - joyStartX, dy = t.clientY - joyStartY;
+                    let dist = Math.sqrt(dx*dx + dy*dy), maxDist = 40;
+                    if (dist > maxDist) { dx = (dx / dist) * maxDist; dy = (dy / dist) * maxDist; }
+                    joyMoveX = dx / maxDist; joyMoveY = dy / maxDist; jStick.style.transform = `translate(${dx}px, ${dy}px)`;
+                }
+                if (t.identifier === camTouchId) {
+                    camRotY -= (t.clientX - prevCamTouchX) * 0.008; camRotX += (t.clientY - prevCamTouchY) * 0.008;
+                    camRotX = Math.max(-Math.PI/3, Math.min(Math.PI/4, camRotX));
+                    prevCamTouchX = t.clientX; prevCamTouchY = t.clientY;
+                }
+            }
+        });
+        window.addEventListener('touchend', (e) => {
+            for (let t of e.changedTouches) {
+                if (t.identifier === joyTouchId) { joyTouchId = null; joyMoveX = 0; joyMoveY = 0; jStick.style.transform = 'translate(0px, 0px)'; }
+                if (t.identifier === camTouchId) camTouchId = null;
+            }
+        });
+
+        // --- 7. PHYSICS & TICK LOOP ---
+        const clock = new THREE.Clock();
+
+        function updatePhysics(p, mx, mz, delta, isBot=false) {
+            if (p.danceTimer > 0) {
+                p.danceTimer -= delta;
+                let tTime = clock.getElapsedTime();
+                if(p.danceType === 1) makeDance1(p, tTime);
+                else if(p.danceType === 2) makeDance2(p, tTime);
+                else if(p.danceType === 3) makeDance3(p, tTime);
+                else if(p.danceType === 4) makeDance4(p, tTime);
+                p.velY = 0;
+                return; 
+            }
+
+            // PC için H+M+Z Kombinasyonu Kontrolü veya Mobil Uçuş Tetikleyicisi
+            let checkFlyKeys = (p === p1 && keys['KeyH'] && keys['KeyM'] && keys['KeyZ']);
+            if(checkFlyKeys) triggerFlyMode();
+
+            if (p.isFlying) {
+                p.flyTimer -= delta;
+                if(p.flyTimer <= 0) {
+                    p.isFlying = false;
+                    if(p === p1) document.getElementById('fly-overlay').style.display = 'none';
+                }
+                p.mesh.position.y += 0.15; p.mesh.position.x += mx; p.mesh.position.z += mz;
+                return;
+            }
+
+            p.mesh.position.x += mx; p.mesh.position.z += mz;
+            if(mx!==0 || mz!==0) p.mesh.rotation.y = Math.atan2(mx, mz);
+
+            let isMoving = (mx!==0 || mz!==0);
+            if(isMoving && p.grounded) {
+                let time = clock.getElapsedTime() * 12;
+                p.lLeg.rotation.x = Math.sin(time)*0.6; p.rLeg.rotation.x = -Math.sin(time)*0.6;
+                p.lArm.rotation.x = -Math.sin(time)*0.6; p.rArm.rotation.x = Math.sin(time)*0.6;
+            } else if(!p.grounded) {
+                if(p.jumpCount === 2) p.mesh.rotation.x += delta * 12;
+                else { p.lLeg.rotation.x = -0.2; p.rLeg.rotation.x = 0.2; }
+            } else {
+                p.lLeg.rotation.x = p.rLeg.rotation.x = p.lArm.rotation.x = p.rArm.rotation.x = p.mesh.rotation.x = 0;
+                p.lArm.rotation.z = p.rArm.rotation.z = 0; p.mesh.rotation.z = 0;
+            }
+
+            p.velY -= 0.007; p.mesh.position.y += p.velY;
+            let hit = false;
+
+            for(let b of blocks) {
+                const bx = p.mesh.position.x; const by = p.mesh.position.y; const bz = p.mesh.position.z;
+                if(bx >= b.minX-0.4 && bx <= b.maxX+0.4 && bz >= b.minZ-0.4 && bz <= b.maxZ+0.4) {
+                    if(by <= b.topY && by >= b.topY-0.4 && p.velY <= 0) {
+                        p.mesh.position.y = b.topY; p.velY = 0; p.grounded = true; p.jumpCount = 0; hit = true;
+                        p.mesh.rotation.x = 0;
+                        if(b.isMoving) {
+                            let offsetVelocity = Math.cos(clock.getElapsedTime() * 2) * 0.05;
+                            if (b.moveType === 'side') p.mesh.position.x += offsetVelocity;
+                        }
+                        if(!isBot && b.isCP && p.cp.z !== b.spawn.z) {
+                            p.cp = {x: b.spawn.x, y: b.spawn.y, z: b.spawn.z};
+                        }
+                        if(b.isFinish) gameFinished = true;
+                        break;
+                    }
+                }
+            }
+            if(!hit) p.grounded = false;
+
+            // TOPA VURMA
+            let distToBall = p.mesh.position.distanceTo(ball.position);
+            if(distToBall < 1.1) {
+                let diffX = ball.position.x - p.mesh.position.x;
+                let diffZ = ball.position.z - p.mesh.position.z;
+                let len = Math.sqrt(diffX*diffX + diffZ*diffZ) || 1;
+                ballVelX = (diffX / len) * 0.35;
+                ballVelZ = (diffZ / len) * 0.35;
+                lastToucher = p; 
+                playSound(350, 180, 'sine', 0.08);
+            }
+
+            // DÜŞME / YENİDEN BAŞLAMA
+            if(p.mesh.position.y < -15) {
+                p.deaths++;
+                p.isFlying = false;
+                if(p === p1) {
+                    document.getElementById('timer-val').innerText = p.deaths;
+                    document.getElementById('fly-overlay').style.display = 'none';
+                }
+                if(p === p2) document.getElementById('p2-val').innerText = p.deaths;
+                if(isBot) {
+                    p.targetBlockIdx = parkurStartIndex;
+                    if(p === bot1) document.getElementById('bot1-val').innerText = p.deaths;
+                    if(p === bot2) document.getElementById('bot2-val').innerText = p.deaths;
+                }
+                p.mesh.position.set(p.cp.x, p.cp.y, p.cp.z); p.velY = 0; p.grounded = true;
+            }
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            const delta = clock.getDelta();
+            const totalTime = clock.getElapsedTime();
+
+            if(mobileJumpTimer > 0) {
+                mobileJumpTimer -= delta;
+            } else {
+                mobileJumpCount = 0;
+            }
+
+            for(let b of blocks) {
+                if(b.isMoving) {
+                    let offset = Math.sin(totalTime * 2) * 2.5;
+                    if (b.moveType === 'side') b.mesh.position.x = b.startX + offset;
+                    b.minX = b.mesh.position.x - b.width/2; b.maxX = b.mesh.position.x + b.width/2;
+                }
+            }
+
+            // --- BALL LOGIC ---
+            ball.position.x += ballVelX;
+            ball.position.z += ballVelZ;
+            ballVelX *= 0.97; ballVelZ *= 0.97; 
+
+            ball.rotation.x += ballVelZ * 0.5;
+            ball.rotation.z -= ballVelX * 0.5;
+
+            let minSahaX = footballSahaX - (footballSahaWidth / 2) + 0.5;
+            let maxSahaX = footballSahaX + (footballSahaWidth / 2) - 0.5;
+            let minSahaZ = footballSahaZCenter - (footballSahaLength / 2);
+            let maxSahaZ = footballSahaZCenter + (footballSahaLength / 2);
+
+            if(ball.position.x > maxSahaX) { ball.position.x = maxSahaX; ballVelX *= -0.8; }
+            if(ball.position.x < minSahaX) { ball.position.x = minSahaX; ballVelX *= -0.8; }
+            if(ball.position.z > maxSahaZ) { ball.position.z = maxSahaZ; ballVelZ *= -0.8; }
+
+            // GOL SİSTEMİ
+            if(ball.position.z <= minSahaZ && ball.position.x >= footballSahaX - 4 && ball.position.x <= footballSahaX + 4) {
+                if(lastToucher) {
+                    lastToucher.goals++; lastToucher.danceTimer = 5.0; lastToucher.danceType = 1;
+                    if(lastToucher === p1) document.getElementById('p1-goals').innerText = p1.goals;
+                    if(lastToucher === p2) document.getElementById('p2-goals').innerText = p2.goals;
+                    const overlay = document.getElementById('goal-overlay');
+                    overlay.innerText = `⚽ GOOOL! - ${lastToucher.tag.split(" ")[0]} ⚽`; overlay.style.display = 'block';
+                    setTimeout(() => overlay.style.display = 'none', 3000);
+                }
+                playSound(150, 600, 'sawtooth', 0.6); resetBall();
+            }
+            else if(ball.position.z >= maxSahaZ && ball.position.x >= footballSahaX - 4 && ball.position.x <= footballSahaX + 4) {
+                if(lastToucher) {
+                    lastToucher.goals++; lastToucher.danceTimer = 5.0; lastToucher.danceType = 1;
+                    if(lastToucher === p1) document.getElementById('p1-goals').innerText = p1.goals;
+                    if(lastToucher === p2) document.getElementById('p2-goals').innerText = p2.goals;
+                    const overlay = document.getElementById('goal-overlay');
+                    overlay.innerText = `⚽ GOOOL! - ${lastToucher.tag.split(" ")[0]} ⚽`; overlay.style.display = 'block';
+                    setTimeout(() => overlay.style.display = 'none', 3000);
+                }
+                playSound(150, 600, 'sawtooth', 0.6); resetBall();
+            }
+
+            if(gameFinished) {
+                makeDance1(p1, totalTime); makeDance1(p2, totalTime);
+            } else {
+                let mx1 = 0, mz1 = 0;
+                const forward = new THREE.Vector3(0, 0, -1).applyAxisAngle(new THREE.Vector3(0, 1, 0), camRotY).normalize();
+                const right = new THREE.Vector3(1, 0, 0).applyAxisAngle(new THREE.Vector3(0, 1, 0), camRotY).normalize();
+
+                if (isMobile) {
+                    let mSpeed = 0.09;
+                    mx1 += (forward.x * -joyMoveY + right.x * joyMoveX) * mSpeed;
+                    mz1 += (forward.z * -joyMoveY + right.z * joyMoveX) * mSpeed;
+                } else {
+                    let speed1 = keys['ShiftLeft'] ? 0.14 : 0.08;
+                    if(keys['KeyW']) { mx1 += forward.x * speed1; mz1 += forward.z * speed1; }
+                    if(keys['KeyS']) { mx1 -= forward.x * speed1; mz1 -= forward.z * speed1; }
+                    if(keys['KeyA']) { mx1 -= right.x * speed1; mz1 -= right.z * speed1; }
+                    if(keys['KeyD']) { mx1 += right.x * speed1; mz1 += right.z * speed1; }
+                }
+
+                let mx2 = 0, mz2 = 0;
+                if(coOpModeActive && !isMobile) {
+                    let speed2 = 0.08;
+                    if(keys['ArrowUp']) { mx2 += forward.x * speed2; mz2 += forward.z * speed2; }
+                    if(keys['ArrowDown']) { mx2 -= forward.x * speed2; mz2 -= forward.z * speed2; }
+                    if(keys['ArrowLeft']) { mx2 -= right.x * speed2; mz2 -= right.z * speed2; }
+                    if(keys['ArrowRight']) { mx2 += right.x * speed2; mz2 += right.z * speed2; }
+                }
+
+                updatePhysics(p1, mx1, mz1, delta, false);
+                if(coOpModeActive) updatePhysics(p2, mx2, mz2, delta, false);
+
+                // BOT AI YAPAY ZEKA MANTIĞI
+                [bot1, bot2].forEach((bot, index) => {
+                    if (bot.targetBlockIdx >= blocks.length) return;
+                    
+                    let currentPos = bot.mesh.position;
+                    let targetBlock = blocks[bot.targetBlockIdx];
+                    
+                    if(targetBlock.width > 500) { bot.targetBlockIdx++; return; }
+
+                    let targetX = targetBlock.mesh.position.x + (index === 0 ? -0.5 : 0.5);
+                    let targetZ = targetBlock.mesh.position.z;
+                    
+                    let dx = targetX - currentPos.x; 
+                    let dz = targetZ - currentPos.z;
+                    let distance = Math.sqrt(dx*dx + dz*dz);
+
+                    if (distance < 1.2) {
+                        bot.targetBlockIdx++;
+                        if(bot.targetBlockIdx >= blocks.length) bot.targetBlockIdx = parkurStartIndex;
+                        return;
+                    }
+
+                    let bSpeed = 0.05;
+                    let bmx = (dx / distance) * bSpeed;
+                    let bmz = (dz / distance) * bSpeed;
+
+                    if (distance > 2.5 && distance < 4.5 && bot.grounded) {
+                        bot.velY = bot.jumpPower;
+                        bot.grounded = false;
+                    }
+
+                    updatePhysics(bot, bmx, bmz, delta, true);
+                });
+            }
+
+            // KAMERA TAKİBİ
+            if (!isMobile) {
+                camera.position.x = p1.mesh.position.x - Math.sin(camRotY) * 6;
+                camera.position.z = p1.mesh.position.z - Math.cos(camRotY) * 6;
+                camera.position.y = p1.mesh.position.y + 3 + Math.sin(camRotX) * 3;
+                camera.lookAt(p1.mesh.position.x, p1.mesh.position.y + 1, p1.mesh.position.z);
+            } else {
+                camera.position.set(p1.mesh.position.x, p1.mesh.position.y + 7, p1.mesh.position.z + 8);
+                camera.lookAt(p1.mesh.position);
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        animate();
+    </script>
+</body>
+</html>
