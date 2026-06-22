@@ -30,16 +30,16 @@
     <div id="fly-overlay">🚀 UÇMA MODU AKTİF! (5s)</div>
 
     <div id="ui">
-        <h3>HAMYAZPARKOUR v17</h3>
+        <h3>HAMYAZPARKOUR v18</h3>
         <p style="color: #ffcc00; font-weight: bold;">-> PC: 2 TUŞU İLE KUZENLE OYNA <-</p>
         <p><b>P1:</b> S (İleri), W (Geri), D (Sol), A (Sağ)</p>
         <p><b>P2:</b> Yön Okları | Num0 veya Sağ Shift</p>
-        <p><b>SAHA:</b> Başlangıç adasının hemen SAĞINDA birleşik!</p>
+        <p><b>SAHA:</b> Başlangıç adasının sağında - 2 KAT DAHA BÜYÜK!</p>
         <p><b>YENİ:</b> Zıplayan, Havalanan ve Falsolu Şut Fiziği!</p>
         <p><b>HİLE:</b> H + M + Z ile UÇ! (5 Saniye Sürer)</p>
         <p><b>DANS:</b> G, F, V, B tuşları ile Dans Et!</p>
         <hr style="border-color: #444;">
-        <p id="checkpoint-text" style="color: #55ff55; font-weight: bold;">Saha Adaya Birleştirildi!</p>
+        <p id="checkpoint-text" style="color: #55ff55; font-weight: bold;">Saha İki Katına Çıkarıldı!</p>
     </div>
 
     <div id="stats">
@@ -139,11 +139,12 @@
         // Ana Başlangıç Alanı
         createBlock(0, -1, 15, 16, 2, 20, grassTex); 
 
-        // FUTBOL SAHASI
-        const footballSahaX = 21;
+        // FUTBOL SAHASI (2 KATINA ÇIKARILDI)
+        // Orijinal: Genişlik 26, Uzunluk 20 idi. Yeni: Genişlik 52, Uzunluk 40 oldu.
+        const footballSahaX = 34; // Başlangıç adasından uzaklığı biraz esnettik ki iç içe girmesin
         const footballSahaZCenter = 15;
-        const footballSahaLength = 20; 
-        const footballSahaWidth = 26;
+        const footballSahaLength = 40; 
+        const footballSahaWidth = 52;
         
         createBlock(footballSahaX, -1, footballSahaZCenter, footballSahaWidth, 2, footballSahaLength, grassTex); 
 
@@ -202,7 +203,7 @@
         
         // TOP DEĞİŞKENLERİ VE FİZİKLERİ (Zıplama & Havalanma & Yerçekimi)
         let ballVelX = 0, ballVelY = 0, ballVelZ = 0;
-        let ballFalso = 0; // Falso/Kavis gücü açısı
+        let ballFalso = 0; 
         let lastToucher = null; 
 
         function resetBall() {
@@ -245,7 +246,7 @@
                 velY:0, grounded:true, deaths:0, goals:0, cp:{x:0,y:0,z:15}, 
                 jumpPower:0.16, targetBlockIdx: parkurStartIndex, tag: name, jumpCount: 0,
                 danceTimer: 0, danceType: 0, isFlying: false, flyTimer: 0,
-                lastMx: 0, lastMz: 0 // Son hareket yönü (Falso hesabı için)
+                lastMx: 0, lastMz: 0 
             };
         }
 
@@ -412,7 +413,6 @@
         const clock = new THREE.Clock();
 
         function updatePhysics(p, mx, mz, delta, isBot=false) {
-            // Son yön girdilerini kaydet (Topa falso vermek için kullanılacak)
             p.lastMx = mx;
             p.lastMz = mz;
 
@@ -464,7 +464,6 @@
                         p.mesh.position.y = b.topY; p.velY = 0; p.grounded = true; p.jumpCount = 0; hit = true;
                         p.mesh.rotation.x = 0;
                         
-                        // Kırılan blok tetikleyicisi
                         if(b.isBreaking && b.breakTimer === 0) {
                             b.breakTimer = 0.8; 
                         }
@@ -483,26 +482,23 @@
             }
             if(!hit) p.grounded = false;
 
-            // ADVANCED TOPA VURMA VE ŞUT MEKANİĞİ (Zıplama yüksekliği & Falso)
+            // ADVANCED TOPA VURMA VE ŞUT MEKANİĞİ
             let distToBall = p.mesh.position.distanceTo(ball.position);
             if(distToBall < 1.1) {
                 let diffX = ball.position.x - p.mesh.position.x;
                 let diffZ = ball.position.z - p.mesh.position.z;
                 let len = Math.sqrt(diffX*diffX + diffZ*diffZ) || 1;
                 
-                // Temel yatay hızlanma
-                ballVelX = (diffX / len) * 0.38;
-                ballVelZ = (diffZ / len) * 0.38;
+                // Genişleyen sahada şutların ezilmemesi için vuruş gücünü hafifçe arttırdık (0.38 -> 0.44)
+                ballVelX = (diffX / len) * 0.44;
+                ballVelZ = (diffZ / len) * 0.44;
                 
-                // Havalanma Kontrolü: Oyuncu zıplamışsa top dikey eksende (Y) havalanır
                 if(!p.grounded && p.mesh.position.y > 0.2) {
-                    ballVelY = Math.max(0.08, p.velY * 1.5 + 0.08); // Aşırtma şut dikey kuvveti
+                    ballVelY = Math.max(0.08, p.velY * 1.5 + 0.08); 
                 } else {
-                    ballVelY = 0.02; // Düz şut hafif sekme payı
+                    ballVelY = 0.02; 
                 }
 
-                // Falso (Kavis) Hesabı: Oyuncu topa vururken sağa/sola kesme yapıyorsa top falso alır
-                // Oyuncunun vuruş anındaki yanlamasına hızı topun falso açısını belirler
                 ballFalso = (p.lastMx * ballVelZ - p.lastMz * ballVelX) * 4.5;
 
                 lastToucher = p; 
@@ -541,7 +537,6 @@
             // Blok mekanikleri & Tuzaklar
             spinnerPivot.rotation.y += delta * 2.5; 
             
-            // Dönen pervanenin çarpma kontrolü
             let p1DistToSpinner = p1.mesh.position.distanceTo(spinnerPivot.position);
             if(p1DistToSpinner < 3.0 && Math.abs(p1.mesh.position.y - spinnerPivot.position.y) < 1.5) {
                 p1.velY = 0.12; p1.grounded = false;
@@ -558,10 +553,10 @@
                 if(b.isBreaking) {
                     if(b.breakTimer > 0) {
                         b.breakTimer -= delta;
-                        b.mesh.position.y -= delta * 0.5; // Sallanma efekti
+                        b.mesh.position.y -= delta * 0.5; 
                         if(b.breakTimer <= 0) {
                             b.isActive = false; b.mesh.visible = false;
-                            b.breakTimer = -3.0; // 3 saniye kapalı kalacak
+                            b.breakTimer = -3.0; 
                         }
                     } else if(b.breakTimer < 0) {
                         b.breakTimer += delta;
@@ -577,49 +572,41 @@
                 triggerFlyMode();
             }
 
-            // --- ADVANCED BALL LOGIC (Yerçekimi, Sekme, Falso) ---
-            // Falsoyu X ve Z eksenindeki hız vektörlerine kavis olarak yediriyoruz
+            // --- ADVANCED BALL LOGIC ---
             if (Math.abs(ballFalso) > 0.001) {
                 ballVelX += ballVelZ * ballFalso * delta * 2.0;
                 ballVelZ -= ballVelX * ballFalso * delta * 2.0;
-                ballFalso *= 0.96; // Falso sürtünmeyle azalır
+                ballFalso *= 0.96; 
             }
 
-            // Pozisyonları güncelle
             ball.position.x += ballVelX;
             ball.position.y += ballVelY;
             ball.position.z += ballVelZ;
 
-            // Topun Sürtünme Yavaşlaması
             ballVelX *= 0.975; 
             ballVelZ *= 0.975; 
 
-            // Topun Yerçekimi ve Saha İçi Sekmesi (Y Ekseni)
             if (ball.position.y > 0.5) {
-                ballVelY -= 0.008; // Top yerçekimi
+                ballVelY -= 0.008; 
             } else {
-                // Top yeşil sahaya çarpınca seker (Enerji kaybı ile)
                 if (ball.position.x >= footballSahaX - (footballSahaWidth/2) && ball.position.x <= footballSahaX + (footballSahaWidth/2) &&
                     ball.position.z >= footballSahaZCenter - (footballSahaLength/2) && ball.position.z <= footballSahaZCenter + (footballSahaLength/2)) {
                     
                     ball.position.y = 0.5;
                     if (Math.abs(ballVelY) > 0.02) {
-                        ballVelY = -ballVelY * 0.55; // Sekme katsayısı
+                        ballVelY = -ballVelY * 0.55; 
                         playSound(180, 120, 'sine', 0.04);
                     } else {
                         ballVelY = 0;
                     }
                 } else {
-                    // Saha dışındaysa aşağı düşebilir (Yerçekimi devam eder)
                     ballVelY -= 0.008;
                 }
             }
 
-            // Topun Dönüş Dönme Animasyon Hızı
             ball.rotation.x += ballVelZ * 0.5;
             ball.rotation.z -= ballVelX * 0.5;
 
-            // Saha Sınırları Çarpışma Kontrolleri
             let minSahaX = footballSahaX - (footballSahaWidth / 2) + 0.5;
             let maxSahaX = footballSahaX + (footballSahaWidth / 2) - 0.5;
             let minSahaZ = footballSahaZCenter - (footballSahaLength / 2);
@@ -629,24 +616,24 @@
             if(ball.position.x < minSahaX) { ball.position.x = minSahaX; ballVelX *= -0.8; ballFalso *= -0.5; }
             if(ball.position.z > maxSahaZ) { ball.position.z = maxSahaZ; ballVelZ *= -0.8; ballFalso *= -0.5; }
 
-            // Top uçuruma düşerse resetle
             if(ball.position.y < -10) {
                 resetBall();
             }
 
-            // KALECİ AI MANTIĞI
+            // KALECİ AI MANTIĞI (Genişleyen kaleye göre koruma mesafesi güncellendi)
             [gk1, gk2].forEach((gk, index) => {
                 let targetZ = index === 0 ? k1Z + 1 : k2Z - 1;
                 let desiredX = ball.position.x;
-                desiredX = Math.max(footballSahaX - 4, Math.min(footballSahaX + 4, desiredX)); // Kaleden çok uzaklaşma
+                // Kale genişliği 8 birim olduğu için direk sınırları footballSahaX - 4 ve + 4 arasındadır, burası sabit kalıyor.
+                desiredX = Math.max(footballSahaX - 4, Math.min(footballSahaX + 4, desiredX)); 
                 
                 gk.mesh.position.x += (desiredX - gk.mesh.position.x) * 0.08; 
                 gk.mesh.position.z = targetZ;
 
                 let distToBall = gk.mesh.position.distanceTo(ball.position);
                 if(distToBall < 1.2) {
-                    ballVelZ *= -1.2; // Topu kurtar ve ileri fırlat
-                    ballVelY = Math.random() * 0.12; // Kaleci de bazen topu havadan uzaklaştırır
+                    ballVelZ *= -1.2; 
+                    ballVelY = Math.random() * 0.12; 
                     ballVelX += (Math.random() - 0.5) * 0.2;
                     ballFalso = (Math.random() - 0.5) * 2;
                     playSound(200, 300, 'triangle', 0.1);
@@ -690,7 +677,6 @@
                     mz1 += (forward.z * -joyMoveY + right.z * joyMoveX) * mSpeed;
                 } else {
                     let speed1 = keys['ShiftLeft'] ? 0.14 : 0.08;
-                    // DSAW KONTROL MANTIĞI
                     if(keys['KeyS']) { mx1 += forward.x * speed1; mz1 += forward.z * speed1; } 
                     if(keys['KeyW']) { mx1 -= forward.x * speed1; mz1 -= forward.z * speed1; } 
                     if(keys['KeyD']) { mx1 -= right.x * speed1; mz1 -= right.z * speed1; }     
