@@ -130,15 +130,13 @@
             blocks.push(b); return b;
         }
 
-        // Ana Başlangıç Alanı (Parkur başlangıcı)
-        // Merkez X=0, Genişlik=16 -> Sağ sınırı X = 8'de bitiyor.
+        // Ana Başlangıç Alanı
         createBlock(0, -1, 15, 16, 2, 20, grassTex); 
 
-        // FUTBOL SAHASI - ADAYA TAM YAPIŞIK! 
-        // Sol sınırı X = 8 olsun ki adaya sıfır birleşsin. Genişlik=26 ise Merkez X = 8 + 13 = 21 olur.
+        // FUTBOL SAHASI
         const footballSahaX = 21;
         const footballSahaZCenter = 15;
-        const footballSahaLength = 20; // Başlangıç adasıyla aynı hizada (Z: 5 ile 25 arası)
+        const footballSahaLength = 20; 
         const footballSahaWidth = 26;
         
         createBlock(footballSahaX, -1, footballSahaZCenter, footballSahaWidth, 2, footballSahaLength, grassTex); 
@@ -150,15 +148,15 @@
             const leftPole = new THREE.Mesh(new THREE.BoxGeometry(0.3, 3, 0.3), pMat); leftPole.position.set(xPos - 4, 1.5, zPos); scene.add(leftPole);
             const rightPole = new THREE.Mesh(new THREE.BoxGeometry(0.3, 3, 0.3), pMat); rightPole.position.set(xPos + 4, 1.5, zPos); scene.add(rightPole);
         }
-        buildGoal(footballSahaX, footballSahaZCenter + (footballSahaLength / 2)); // Güney Kalesi (Z = 25)
-        buildGoal(footballSahaX, footballSahaZCenter - (footballSahaLength / 2)); // Kuzey Kalesi (Z = 5)
+        buildGoal(footballSahaX, footballSahaZCenter + (footballSahaLength / 2)); 
+        buildGoal(footballSahaX, footballSahaZCenter - (footballSahaLength / 2)); 
 
-        // PARKUR BLOKLARI (Botlar burayı takip edecek, indeks sırası önemli!)
-        const parkurStartIndex = blocks.length; // Parkur elemanlarının başlangıcı
-        createBlock(0, 0, -2, 4, 2, 4, stoneTex); // Blok 0
-        createBlock(0, 1, -9, 2.5, 2, 2.5, stoneTex); // Blok 1
-        createBlock(3, 2, -15, 2.5, 2, 2.5, stoneTex); // Blok 2
-        createBlock(0, 3, -22, 4, 2, 4, cpTex, true); // Blok 3
+        // PARKUR BLOKLARI
+        const parkurStartIndex = blocks.length; 
+        createBlock(0, 0, -2, 4, 2, 4, stoneTex); 
+        createBlock(0, 1, -9, 2.5, 2, 2.5, stoneTex); 
+        createBlock(3, 2, -15, 2.5, 2, 2.5, stoneTex); 
+        createBlock(0, 3, -22, 4, 2, 4, cpTex, true); 
 
         const movingBlock1 = createBlock(-3, 4, -29, 2.5, 1, 2.5, stoneTex); movingBlock1.isMoving = true; movingBlock1.moveType = 'side';
         createBlock(2, 5, -36, 2.5, 2, 2.5, stoneTex);
@@ -176,7 +174,7 @@
         createBlock(0, 17.5, -124, 4, 2, 4, cpTex, true); 
         createBlock(0, 22.5, -145, 15, 2, 15, diamondTex, false, true); 
 
-        // LAVA TENEKEMİZ
+        // LAVA
         createBlock(0, -25, -50, 2000, 1, 2000, lavaTex);
 
         // --- 5. FUTBOL TOPU ---
@@ -232,7 +230,6 @@
         const p1 = createCharacter("Mahmut 1 (Sen)", cloth1, false); p1.mesh.position.set(-2, 0, 15);
         const p2 = createCharacter("Mahmut 4 (P2)", cloth4, true); p2.mesh.position.set(2, 0, 15); 
         
-        // Botları direkt parkur başlangıç adasında konumlandıralım
         const bot1 = createCharacter("Mahmut 2", cloth2, false); bot1.mesh.position.set(-4, 0, 12);
         const bot2 = createCharacter("Mahmut 3", cloth3, false); bot2.mesh.position.set(4, 0, 12);
 
@@ -284,18 +281,11 @@
                 else if (p2.jumpCount === 1) { p2.velY = p2.jumpPower * 0.95; p2.jumpCount = 2; playSound(245, 485, 'sine', 0.12); }
             }
             
-            // G tuşu - Dans 1
             if (e.code === 'KeyG' && p1.danceTimer <= 0) {
-                p1.danceTimer = 5.0;
-                p1.danceType = 1;
-                playSound(300, 400, 'sine', 0.1);
+                p1.danceTimer = 5.0; p1.danceType = 1; playSound(300, 400, 'sine', 0.1);
             }
-            
-            // F tuşu - Dans 2
             if (e.code === 'KeyF' && p1.danceTimer <= 0) {
-                p1.danceTimer = 5.0;
-                p1.danceType = 2;
-                playSound(250, 350, 'sine', 0.1);
+                p1.danceTimer = 5.0; p1.danceType = 2; playSound(250, 350, 'sine', 0.1);
             }
             
             keys[e.code]=true; 
@@ -314,313 +304,4 @@
         // MOBIL CONTROLS
         let joyTouchId = null; let camTouchId = null;
         let joyStartX = 0, joyStartY = 0; let joyMoveX = 0, joyMoveY = 0;
-        let prevCamTouchX = 0, prevCamTouchY = 0;
-        const jZone = document.getElementById('joystick-zone'), jStick = document.getElementById('joystick-stick'), jBtn = document.getElementById('jump-btn');
-
-        jBtn.addEventListener('touchstart', (e) => {
-            e.preventDefault(); if(audioCtx.state==='suspended') audioCtx.resume();
-            
-            mobileJumpCount++;
-            mobileJumpTimer = 0.3;
-            
-            // 3 kere hızlıca basarsa uçma
-            if(mobileJumpCount === 3) {
-                p1.isFlying = true;
-                p1.velY = 0;
-                playSound(400, 600, 'sine', 0.2);
-                mobileJumpCount = 0;
-                return;
-            }
-            
-            if(p1.danceTimer > 0) return;
-            if (p1.grounded) { p1.velY = p1.jumpPower; p1.grounded = false; p1.jumpCount = 1; playSound(120, 280, 'triangle', 0.15); }
-            else if (p1.jumpCount === 1) { p1.velY = p1.jumpPower * 0.95; p1.jumpCount = 2; playSound(240, 480, 'sine', 0.12); }
-        });
-
-        window.addEventListener('touchstart', (e) => {
-            if (!isMobile) return;
-            for (let t of e.changedTouches) {
-                if (t.clientX < window.innerWidth / 2 && joyTouchId === null) {
-                    const rect = jZone.getBoundingClientRect(); joyStartX = rect.left + rect.width / 2; joyStartY = rect.top + rect.height / 2; joyTouchId = t.identifier;
-                } else if (t.clientX >= window.innerWidth / 2 && t.clientY < window.innerHeight - 150 && camTouchId === null) {
-                    camTouchId = t.identifier; prevCamTouchX = t.clientX; prevCamTouchY = t.clientY;
-                }
-            }
-        });
-        window.addEventListener('touchmove', (e) => {
-            if (!isMobile) return;
-            for (let t of e.touches) {
-                if (t.identifier === joyTouchId) {
-                    let dx = t.clientX - joyStartX, dy = t.clientY - joyStartY;
-                    let dist = Math.sqrt(dx*dx + dy*dy), maxDist = 40;
-                    if (dist > maxDist) { dx = (dx / dist) * maxDist; dy = (dy / dist) * maxDist; }
-                    joyMoveX = dx / maxDist; joyMoveY = dy / maxDist; jStick.style.transform = `translate(${dx}px, ${dy}px)`;
-                }
-                if (t.identifier === camTouchId) {
-                    camRotY -= (t.clientX - prevCamTouchX) * 0.008; camRotX += (t.clientY - prevCamTouchY) * 0.008;
-                    camRotX = Math.max(-Math.PI/3, Math.min(Math.PI/4, camRotX));
-                    prevCamTouchX = t.clientX; prevCamTouchY = t.clientY;
-                }
-            }
-        });
-        window.addEventListener('touchend', (e) => {
-            for (let t of e.changedTouches) {
-                if (t.identifier === joyTouchId) { joyTouchId = null; joyMoveX = 0; joyMoveY = 0; jStick.style.transform = 'translate(0px, 0px)'; }
-                if (t.identifier === camTouchId) camTouchId = null;
-            }
-        });
-
-        // --- 7. PHYSICS & TICK LOOP ---
-        const clock = new THREE.Clock();
-
-        function updatePhysics(p, mx, mz, delta, isBot=false) {
-            if (p.danceTimer > 0) {
-                p.danceTimer -= delta;
-                if(p.danceType === 1) {
-                    makeDance1(p, clock.getElapsedTime());
-                } else if(p.danceType === 2) {
-                    makeDance2(p, clock.getElapsedTime());
-                }
-                p.velY = 0;
-                return; 
-            }
-
-            let isFlying = (p === p1 && p.isFlying) || ((p === p1) && keys['KeyH'] && keys['KeyM'] && keys['KeyZ']);
-            if (isFlying) {
-                p.mesh.position.y += 0.15; p.mesh.position.x += mx; p.mesh.position.z += mz;
-                return;
-            }
-
-            p.mesh.position.x += mx; p.mesh.position.z += mz;
-            if(mx!==0 || mz!==0) p.mesh.rotation.y = Math.atan2(mx, mz);
-
-            let isMoving = (mx!==0 || mz!==0);
-            if(isMoving && p.grounded) {
-                let time = clock.getElapsedTime() * 12;
-                p.lLeg.rotation.x = Math.sin(time)*0.6; p.rLeg.rotation.x = -Math.sin(time)*0.6;
-                p.lArm.rotation.x = -Math.sin(time)*0.6; p.rArm.rotation.x = Math.sin(time)*0.6;
-            } else if(!p.grounded) {
-                if(p.jumpCount === 2) p.mesh.rotation.x += delta * 12;
-                else { p.lLeg.rotation.x = -0.2; p.rLeg.rotation.x = 0.2; }
-            } else {
-                p.lLeg.rotation.x = p.rLeg.rotation.x = p.lArm.rotation.x = p.rArm.rotation.x = p.mesh.rotation.x = 0;
-            }
-
-            p.velY -= 0.007; p.mesh.position.y += p.velY;
-            let hit = false;
-
-            for(let b of blocks) {
-                const bx = p.mesh.position.x; const by = p.mesh.position.y; const bz = p.mesh.position.z;
-                if(bx >= b.minX-0.4 && bx <= b.maxX+0.4 && bz >= b.minZ-0.4 && bz <= b.maxZ+0.4) {
-                    if(by <= b.topY && by >= b.topY-0.4 && p.velY <= 0) {
-                        p.mesh.position.y = b.topY; p.velY = 0; p.grounded = true; p.jumpCount = 0; hit = true;
-                        p.mesh.rotation.x = 0;
-                        if(b.isMoving) {
-                            let offsetVelocity = Math.cos(clock.getElapsedTime() * 2) * 0.05;
-                            if (b.moveType === 'side') p.mesh.position.x += offsetVelocity;
-                        }
-                        if(!isBot && b.isCP && p.cp.z !== b.spawn.z) {
-                            p.cp = {x: b.spawn.x, y: b.spawn.y, z: b.spawn.z};
-                        }
-                        if(b.isFinish) gameFinished = true;
-                        break;
-                    }
-                }
-            }
-            if(!hit) p.grounded = false;
-
-            // KICK THE BALL
-            let distToBall = p.mesh.position.distanceTo(ball.position);
-            if(distToBall < 1.1) {
-                let diffX = ball.position.x - p.mesh.position.x;
-                let diffZ = ball.position.z - p.mesh.position.z;
-                let len = Math.sqrt(diffX*diffX + diffZ*diffZ) || 1;
-                ballVelX = (diffX / len) * 0.35;
-                ballVelZ = (diffZ / len) * 0.35;
-                lastToucher = p; 
-                playSound(350, 180, 'sine', 0.08);
-            }
-
-            // FALL OUT / RESPAWN
-            if(p.mesh.position.y < -15) {
-                p.deaths++;
-                p.isFlying = false;
-                if(p === p1) document.getElementById('timer-val').innerText = p.deaths;
-                if(p === p2) document.getElementById('p2-val').innerText = p.deaths;
-                if(isBot) {
-                    p.targetBlockIdx = parkurStartIndex; // Bot ölünce parkura baştan başlasın
-                    if(p === bot1) document.getElementById('bot1-val').innerText = p.deaths;
-                    if(p === bot2) document.getElementById('bot2-val').innerText = p.deaths;
-                }
-                p.mesh.position.set(p.cp.x, p.cp.y, p.cp.z); p.velY = 0; p.grounded = true;
-            }
-        }
-
-        function animate() {
-            requestAnimationFrame(animate);
-            const delta = clock.getDelta();
-            const totalTime = clock.getElapsedTime();
-
-            // Mobil jump timer güncelle
-            if(mobileJumpTimer > 0) {
-                mobileJumpTimer -= delta;
-            } else {
-                mobileJumpCount = 0;
-            }
-
-            for(let b of blocks) {
-                if(b.isMoving) {
-                    let offset = Math.sin(totalTime * 2) * 2.5;
-                    if (b.moveType === 'side') b.mesh.position.x = b.startX + offset;
-                    b.minX = b.mesh.position.x - b.width/2; b.maxX = b.mesh.position.x + b.width/2;
-                }
-            }
-
-            // --- BALL LOGIC ---
-            ball.position.x += ballVelX;
-            ball.position.z += ballVelZ;
-            ballVelX *= 0.97; ballVelZ *= 0.97; 
-
-            ball.rotation.x += ballVelZ * 0.5;
-            ball.rotation.z -= ballVelX * 0.5;
-
-            // Saha Duvar Sınırları (Merkez X = 21, Genişlik = 26 -> 8 ile 34 arası)
-            let minSahaX = footballSahaX - (footballSahaWidth / 2) + 0.5;
-            let maxSahaX = footballSahaX + (footballSahaWidth / 2) - 0.5;
-            let minSahaZ = footballSahaZCenter - (footballSahaLength / 2);
-            let maxSahaZ = footballSahaZCenter + (footballSahaLength / 2);
-
-            if(ball.position.x > maxSahaX) { ball.position.x = maxSahaX; ballVelX *= -0.8; }
-            if(ball.position.x < minSahaX) { ball.position.x = minSahaX; ballVelX *= -0.8; }
-            if(ball.position.z > maxSahaZ) { ball.position.z = maxSahaZ; ballVelZ *= -0.8; }
-
-            // GOL SİSTEMİ
-            if(ball.position.z <= minSahaZ && ball.position.x >= footballSahaX - 4 && ball.position.x <= footballSahaX + 4) {
-                if(lastToucher) {
-                    lastToucher.goals++; lastToucher.danceTimer = 5.0; lastToucher.danceType = 1;
-                    if(lastToucher === p1) document.getElementById('p1-goals').innerText = p1.goals;
-                    if(lastToucher === p2) document.getElementById('p2-goals').innerText = p2.goals;
-                    const overlay = document.getElementById('goal-overlay');
-                    overlay.innerText = `⚽ GOOOL! - ${lastToucher.tag.split(" ")[0]} ⚽`; overlay.style.display = 'block';
-                    setTimeout(() => overlay.style.display = 'none', 3000);
-                }
-                playSound(150, 600, 'sawtooth', 0.6); resetBall();
-            }
-            else if(ball.position.z >= maxSahaZ && ball.position.x >= footballSahaX - 4 && ball.position.x <= footballSahaX + 4) {
-                if(lastToucher) {
-                    lastToucher.goals++; lastToucher.danceTimer = 5.0; lastToucher.danceType = 1;
-                    if(lastToucher === p1) document.getElementById('p1-goals').innerText = p1.goals;
-                    if(lastToucher === p2) document.getElementById('p2-goals').innerText = p2.goals;
-                    const overlay = document.getElementById('goal-overlay');
-                    overlay.innerText = `⚽ GOOOL! - ${lastToucher.tag.split(" ")[0]} ⚽`; overlay.style.display = 'block';
-                    setTimeout(() => overlay.style.display = 'none', 3000);
-                }
-                playSound(150, 600, 'sawtooth', 0.6); resetBall();
-            }
-
-            if(gameFinished) {
-                makeDance1(p1, totalTime); makeDance1(p2, totalTime);
-            } else {
-                let mx1 = 0, mz1 = 0;
-                const forward = new THREE.Vector3(0, 0, -1).applyAxisAngle(new THREE.Vector3(0, 1, 0), camRotY).normalize();
-                const right = new THREE.Vector3(1, 0, 0).applyAxisAngle(new THREE.Vector3(0, 1, 0), camRotY).normalize();
-
-                if (isMobile) {
-                    let mSpeed = 0.09;
-                    mx1 += (forward.x * -joyMoveY + right.x * joyMoveX) * mSpeed;
-                    mz1 += (forward.z * -joyMoveY + right.z * joyMoveX) * mSpeed;
-                } else {
-                    let speed1 = keys['ShiftLeft'] ? 0.14 : 0.08;
-                    if(keys['KeyW']) { mx1 += forward.x * speed1; mz1 += forward.z * speed1; }
-                    if(keys['KeyS']) { mx1 -= forward.x * speed1; mz1 -= forward.z * speed1; }
-                    if(keys['KeyA']) { mx1 -= right.x * speed1; mz1 -= right.z * speed1; }
-                    if(keys['KeyD']) { mx1 += right.x * speed1; mz1 += right.z * speed1; }
-                }
-
-                let mx2 = 0, mz2 = 0;
-                if(coOpModeActive && !isMobile) {
-                    let speed2 = 0.08;
-                    if(keys['ArrowUp']) { mx2 += forward.x * speed2; mz2 += forward.z * speed2; }
-                    if(keys['ArrowDown']) { mx2 -= forward.x * speed2; mz2 -= forward.z * speed2; }
-                    if(keys['ArrowLeft']) { mx2 -= right.x * speed2; mz2 -= right.z * speed2; }
-                    if(keys['ArrowRight']) { mx2 += right.x * speed2; mz2 += right.z * speed2; }
-                }
-
-                updatePhysics(p1, mx1, mz1, delta, false);
-                if(coOpModeActive) updatePhysics(p2, mx2, mz2, delta, false);
-
-                // BOT KONTROLLERİ (Akıllı Parkur Zekası Fixlendi)
-                [bot1, bot2].forEach((bot, index) => {
-                    if (bot.targetBlockIdx >= blocks.length) return;
-                    
-                    let currentPos = bot.mesh.position;
-                    let targetBlock = blocks[bot.targetBlockIdx];
-                    
-                    // Eğer hedef blok lava ise (en son eklenen dev blok) pas geçsin
-                    if(targetBlock.width > 500) { bot.targetBlockIdx++; return; }
-
-                    // Botların sağa sola hizalanması
-                    let targetX = targetBlock.mesh.position.x + (index === 0 ? -0.5 : 0.5);
-                    let targetZ = targetBlock.mesh.position.z;
-                    
-                    let dx = targetX - currentPos.x; 
-                    let dz = targetZ - currentPos.z;
-                    let dist2D = Math.sqrt(dx*dx + dz*dz);
-                    
-                    let bmx = 0, bmz = 0;
-
-                    if(dist2D > 0.3) {
-                        bmx = (dx / dist2D) * 0.05; 
-                        bmz = (dz / dist2D) * 0.05;
-                        
-                        // Önündeki blok daha yukarıdaysa zıplasın
-                        if(bot.grounded && (targetBlock.topY > currentPos.y || dist2D < 3.5)) { 
-                            bot.velY = bot.jumpPower; 
-                            bot.grounded = false; 
-                        }
-                    } else { 
-                        if(bot.grounded) {
-                            bot.targetBlockIdx++; 
-                            // Ekranda kaçıncı blokta olduklarını güncelleyelim
-                            if(bot === bot1) document.getElementById('bot1-p').innerText = (bot.targetBlockIdx - parkurStartIndex);
-                            if(bot === bot2) document.getElementById('bot2-p').innerText = (bot.targetBlockIdx - parkurStartIndex);
-                        }
-                    }
-                    updatePhysics(bot, bmx, bmz, delta, true);
-                });
-            }
-
-            // CAMERA CAMERA CAMERA
-            let targetX, targetY, targetZ;
-            let lookAtX, lookAtY, lookAtZ;
-
-            if (coOpModeActive) {
-                const midX = (p1.mesh.position.x + p2.mesh.position.x) / 2;
-                const midY = (p1.mesh.position.y + p2.mesh.position.y) / 2;
-                const midZ = (p1.mesh.position.z + p2.mesh.position.z) / 2;
-                targetX = midX - Math.sin(camRotY)*Math.cos(camRotX)*11;
-                targetY = midY + 4.5 + Math.sin(camRotX)*11;
-                targetZ = midZ - Math.cos(camRotY)*Math.cos(camRotX)*11;
-                lookAtX = midX; lookAtY = midY + 1.0; lookAtZ = midZ;
-            } else {
-                targetX = p1.mesh.position.x - Math.sin(camRotY)*Math.cos(camRotX)*8;
-                targetY = p1.mesh.position.y + 2.5 + Math.sin(camRotX)*8;
-                targetZ = p1.mesh.position.z - Math.cos(camRotY)*Math.cos(camRotX)*8;
-                lookAtX = p1.mesh.position.x; lookAtY = p1.mesh.position.y + 1.0; lookAtZ = p1.mesh.position.z;
-            }
-
-            camera.position.set(targetX, targetY, targetZ);
-            camera.lookAt(lookAtX, lookAtY, lookAtZ);
-
-            renderer.render(scene, camera);
-        }
-
-        window.addEventListener('resize', () => {
-            camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
-        });
-
-        animate();
-    </script>
-</body>
-</html>
+        let prevCamTouchX = 0, prevCamTouchY =
