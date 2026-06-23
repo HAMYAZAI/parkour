@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Minecraft Futbol Pro v2</title>
+    <title>Minecraft Futbol Pro v3 - Optimize</title>
     <style>
         body { margin: 0; overflow: hidden; font-family: 'Courier New', Courier, monospace; user-select: none;}
         #canvas-container { width: 100vw; height: 100vh; }
@@ -36,7 +36,6 @@
             line-height: 1.5;
         }
     </style>
-    <!-- Three.js Kütüphanesi -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
 <body>
@@ -46,7 +45,7 @@
         <b>[KONTROLLER]</b><br>
         <b>P1 (Mavi):</b> WASD + Boşluk (Zıpla) + Sağ Tık (Şut) + G (Dans)<br>
         <b>P2 (Kırmızı):</b> Yön Tuşları + Enter (Zıpla) + Sol Tık VEYA Ctrl (Şut) + L (Dans)<br>
-        <b>Kamera:</b> Sol Tıka basılı tutarak fareyi çevir (Roblox stili).
+        <b>Kamera:</b> Sol Tıka basılı tutarak fareyi çevir.
     </div>
     <div id="canvas-container"></div>
 
@@ -54,176 +53,140 @@
         // --- SAHNE VE AYARLAR ---
         const container = document.getElementById('canvas-container');
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x5c94fc); // Minecraft gökyüzü mavisi
-        scene.fog = new THREE.FogExp2(0x5c94fc, 0.015);
+        scene.background = new THREE.Color(0x5c94fc); // Gökyüzü
         
-        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
-        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 500);
+        const renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: "high-performance" }); // Kasma önleyici ayar
         renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.shadowMap.enabled = true;
-        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
         container.appendChild(renderer.domElement);
 
-        // Işıklandırma
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+        // Performans dostu ışıklandırma (Gölge hesaplamaları tamamen kaldırıldı)
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.85);
         scene.add(ambientLight);
-        const sunLight = new THREE.DirectionalLight(0xffffff, 0.9);
-        sunLight.position.set(30, 60, 20);
-        sunLight.castShadow = true;
-        sunLight.shadow.mapSize.width = 2048;
-        sunLight.shadow.mapSize.height = 2048;
-        sunLight.shadow.camera.near = 0.5;
-        sunLight.shadow.camera.far = 150;
-        const d = 40;
-        sunLight.shadow.camera.left = -d;
-        sunLight.shadow.camera.right = d;
-        sunLight.shadow.camera.top = d;
-        sunLight.shadow.camera.bottom = -d;
-        scene.add(sunLight);
+        const dirLight = new THREE.DirectionalLight(0xffffff, 0.3);
+        dirLight.position.set(10, 20, 10);
+        scene.add(dirLight);
 
-        // --- TEKS-TÜR PACK YAPICI (Procedural Textures) ---
-        // Harici görsellere bağımlı olmamak için kodla Steve tarzı yüz ve kıyafet dokuları üretiyoruz
+        // --- DOKUÜRETİCİSİ ---
         function createCharacterTexture(mainColorHex, isFace) {
             const canvas = document.createElement('canvas');
-            canvas.width = 64;
-            canvas.height = 64;
+            canvas.width = 32; // Daha düşük çözünürlük = daha yüksek performans
+            canvas.height = 32;
             const ctx = canvas.getContext('2d');
             
-            // Arka plan rengi (Kıyafet veya Ten rengi)
             ctx.fillStyle = mainColorHex;
-            ctx.fillRect(0, 0, 64, 64);
+            ctx.fillRect(0, 0, 32, 32);
             
-            // Minecraft gürültü (noise) efekti verelim
-            for (let i = 0; i < 64; i += 4) {
-                for (let j = 0; j < 64; j += 4) {
-                    if (Math.random() > 0.6) {
-                        ctx.fillStyle = 'rgba(0,0,0,0.08)';
+            // Hafif Minecraft gürültüsü
+            for (let i = 0; i < 32; i += 4) {
+                for (let j = 0; j < 32; j += 4) {
+                    if (Math.random() > 0.7) {
+                        ctx.fillStyle = 'rgba(0,0,0,0.06)';
                         ctx.fillRect(i, j, 4, 4);
                     }
                 }
             }
 
-            // Eğer kafa yüzü ise göz ve ağız çiz
             if (isFace) {
-                ctx.fillStyle = '#ffdbac'; // Ten Rengi Ön Yüz
-                ctx.fillRect(16, 16, 32, 48);
-                // Gözler
-                ctx.fillStyle = '#fff';
-                ctx.fillRect(20, 28, 8, 8);
-                ctx.fillRect(36, 28, 8, 8);
-                ctx.fillStyle = '#4caf50'; // Göz bebeği
-                ctx.fillRect(24, 28, 4, 8);
-                ctx.fillRect(36, 28, 4, 8);
-                // Ağız/Sakal
-                ctx.fillStyle = '#5c4033';
-                ctx.fillRect(24, 44, 16, 4);
+                ctx.fillStyle = '#ffdbac'; 
+                ctx.fillRect(8, 8, 16, 24);
+                ctx.fillStyle = '#fff'; // Gözler
+                ctx.fillRect(10, 14, 4, 4);
+                ctx.fillRect(18, 14, 4, 4);
+                ctx.fillStyle = '#4caf50'; 
+                ctx.fillRect(12, 14, 2, 4);
+                ctx.fillRect(18, 14, 2, 4);
+                ctx.fillStyle = '#5c4033'; // Ağız
+                ctx.fillRect(12, 22, 8, 2);
             }
 
             const texture = new THREE.CanvasTexture(canvas);
-            texture.magFilter = THREE.NearestFilter; // Piksel görünümü sağlamak için kritik!
+            texture.magFilter = THREE.NearestFilter;
             texture.minFilter = THREE.NearestFilter;
             return texture;
         }
 
-        // Dokuları Hazırla
         const blueShirtTex = createCharacterTexture('#2196f3', false);
         const redShirtTex = createCharacterTexture('#f44336', false);
         const skinTex = createCharacterTexture('#ffdbac', false);
         const faceTex = createCharacterTexture('#ffdbac', true);
-        const ballTex = createCharacterTexture('#ffffff', false); // Top için beyaz gürültülü doku
+        const ballTex = createCharacterTexture('#ffffff', false);
 
-        // Materyaller
         const p1Mat = new THREE.MeshLambertMaterial({ map: blueShirtTex });
         const p2Mat = new THREE.MeshLambertMaterial({ map: redShirtTex });
         const skinMat = new THREE.MeshLambertMaterial({ map: skinTex });
         const faceMaterial = new THREE.MeshLambertMaterial({ map: faceTex });
         
-        // Kafanın sadece ön yüzünde surat olması için materyal dizisi
         function getHeadMaterials(shirtMat) {
             return [shirtMat, shirtMat, shirtMat, shirtMat, faceMaterial, shirtMat];
         }
 
         // --- STADYUM VE SAHA ---
-        const greenMat = new THREE.MeshLambertMaterial({ color: 0x3b7a24 });
+        const greenMat = new THREE.MeshLambertMaterial({ color: 0x4caf50 });
         const whiteMat = new THREE.MeshLambertMaterial({ color: 0xffffff });
 
-        const fieldGeo = new THREE.BoxGeometry(50, 1, 70);
-        const field = new THREE.Mesh(fieldGeo, greenMat);
+        const field = new THREE.Mesh(new THREE.BoxGeometry(50, 1, 70), greenMat);
         field.position.y = -0.5;
-        field.receiveShadow = true;
         scene.add(field);
 
-        // Tribünler (Minecraft Blok Tarzı)
+        // Basit tribünler
         for (let i = 0; i < 3; i++) {
-            const standGeo = new THREE.BoxGeometry(60, 2 + i * 2, 5);
-            const standL = new THREE.Mesh(standGeo, new THREE.MeshLambertMaterial({color: 0x666666}));
-            standL.position.set(0, (2 + i * 2)/2 - 0.5, -38 - i * 4);
-            standL.castShadow = true; standL.receiveShadow = true;
-            scene.add(standL);
+            const stand = new THREE.Mesh(new THREE.BoxGeometry(60, 2 + i * 2, 5), new THREE.MeshLambertMaterial({color: 0x555555}));
+            stand.position.set(0, (2 + i * 2)/2 - 0.5, -38 - i * 4);
+            scene.add(stand);
 
-            const standR = standL.clone();
+            const standR = stand.clone();
             standR.position.z = 38 + i * 4;
             scene.add(standR);
         }
 
-        // Kaleler
         function createGoal(zPos) {
             const goalGroup = new THREE.Group();
             const postGeo = new THREE.BoxGeometry(1, 7, 1);
             const barGeo = new THREE.BoxGeometry(16, 1, 1);
-            
-            const lp = new THREE.Mesh(postGeo, whiteMat); lp.position.set(-8, 3.5, 0); lp.castShadow = true;
-            const rp = new THREE.Mesh(postGeo, whiteMat); rp.position.set(8, 3.5, 0); rp.castShadow = true;
-            const topBar = new THREE.Mesh(barGeo, whiteMat); topBar.position.set(0, 7, 0); topBar.castShadow = true;
-
+            const lp = new THREE.Mesh(postGeo, whiteMat); lp.position.set(-8, 3.5, 0);
+            const rp = new THREE.Mesh(postGeo, whiteMat); rp.position.set(8, 3.5, 0);
+            const topBar = new THREE.Mesh(barGeo, whiteMat); topBar.position.set(0, 7, 0);
             goalGroup.add(lp, rp, topBar);
             goalGroup.position.set(0, 0, zPos);
             scene.add(goalGroup);
         }
-        createGoal(-35); // Kuzey Kalesi
-        createGoal(35);  // Güney Kalesi
+        createGoal(-35); createGoal(35);
 
-        // --- KARAKTER FABRİKASI (Ekstremite Eklenmiş Model) ---
+        // --- KARAKTER MODELLEME ---
         function buildMinecraftCharacter(shirtMat) {
             const charGroup = new THREE.Group();
 
             // Gövde
-            const body = new THREE.Mesh(new THREE.BoxGeometry(1.6, 2.4, 0.8), shirtMat);
-            body.position.y = 2.2;
-            body.castShadow = true;
+            const body = new THREE.Mesh(new THREE.BoxGeometry(1.4, 2.0, 0.8), shirtMat);
+            body.position.y = 2.0;
             charGroup.add(body);
 
             // Kafa
-            const headGeo = new THREE.BoxGeometry(1.2, 1.2, 1.2);
-            const head = new THREE.Mesh(headGeo, getHeadMaterials(shirtMat));
-            head.position.y = 4;
-            head.castShadow = true;
+            const head = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.2, 1.2), getHeadMaterials(shirtMat));
+            head.position.y = 3.6;
             charGroup.add(head);
 
-            // Kollar ve Bacaklar için Pivot Noktaları (Düzgün sallanma için)
-            const leftArmPivot = new THREE.Group(); leftArmPivot.position.set(-1.1, 3.2, 0);
-            const leftArm = new THREE.Mesh(new THREE.BoxGeometry(0.4, 2.0, 0.6), skinMat);
-            leftArm.position.y = -0.9; leftArm.castShadow = true; leftArmPivot.add(leftArm);
-            charGroup.add(leftArmPivot);
+            // Kollar (Omuz hizasından pivotlama)
+            const leftArmPivot = new THREE.Group(); leftArmPivot.position.set(-1.0, 2.8, 0);
+            const leftArm = new THREE.Mesh(new THREE.BoxGeometry(0.4, 1.6, 0.6), skinMat);
+            leftArm.position.y = -0.8; leftArmPivot.add(leftArm); charGroup.add(leftArmPivot);
 
-            const rightArmPivot = new THREE.Group(); rightArmPivot.position.set(1.1, 3.2, 0);
-            const rightArm = new THREE.Mesh(new THREE.BoxGeometry(0.4, 2.0, 0.6), skinMat);
-            rightArm.position.y = -0.9; rightArm.castShadow = true; rightArmPivot.add(rightArm);
-            charGroup.add(rightArmPivot);
+            const rightArmPivot = new THREE.Group(); rightArmPivot.position.set(1.0, 2.8, 0);
+            const rightArm = new THREE.Mesh(new THREE.BoxGeometry(0.4, 1.6, 0.6), skinMat);
+            rightArm.position.y = -0.8; rightArmPivot.add(rightArm); charGroup.add(rightArmPivot);
 
+            // Bacaklar (Kalça hizasından pivotlama)
             const leftLegPivot = new THREE.Group(); leftLegPivot.position.set(-0.4, 1.0, 0);
-            const leftLeg = new THREE.Mesh(new THREE.BoxGeometry(0.6, 1.4, 0.6), shirtMat);
-            leftLeg.position.y = -0.7; leftLeg.castShadow = true; leftLegPivot.add(leftLeg);
-            charGroup.add(leftLegPivot);
+            const leftLeg = new THREE.Mesh(new THREE.BoxGeometry(0.5, 1.4, 0.6), shirtMat);
+            leftLeg.position.y = -0.7; leftLegPivot.add(leftLeg); charGroup.add(leftLegPivot);
 
             const rightLegPivot = new THREE.Group(); rightLegPivot.position.set(0.4, 1.0, 0);
-            const rightLeg = new THREE.Mesh(new THREE.BoxGeometry(0.6, 1.4, 0.6), shirtMat);
-            rightLeg.position.y = -0.7; rightLeg.castShadow = true; rightLegPivot.add(rightLeg);
-            charGroup.add(rightLegPivot);
+            const rightLeg = new THREE.Mesh(new THREE.BoxGeometry(0.5, 1.4, 0.6), shirtMat);
+            rightLeg.position.y = -0.7; rightLegPivot.add(rightLeg); charGroup.add(rightLegPivot);
 
             scene.add(charGroup);
 
-            // Kolay animasyon kontrolü için referansları dönüyoruz
             return {
                 root: charGroup,
                 leftArm: leftArmPivot, rightArm: rightArmPivot,
@@ -231,20 +194,16 @@
             };
         }
 
-        // Oyuncular ve Botlar Tanımlanıyor
         const player1 = buildMinecraftCharacter(p1Mat); player1.root.position.set(-4, 0, 20);
         const player2 = buildMinecraftCharacter(p2Mat); player2.root.position.set(4, 0, 20); player2.root.visible = false;
         
-        // İki kaleye de bot eklendi!
         const botKeeperNorth = buildMinecraftCharacter(p2Mat); botKeeperNorth.root.position.set(0, 0, -33);
         const botKeeperSouth = buildMinecraftCharacter(p1Mat); botKeeperSouth.root.position.set(0, 0, 33);
 
-        // Top (Küp şeklinde dökülü top)
         const ball = new THREE.Mesh(new THREE.BoxGeometry(1.4, 1.4, 1.4), new THREE.MeshLambertMaterial({ map: ballTex }));
-        ball.castShadow = true;
         scene.add(ball);
 
-        // --- FİZİK VE OYUN VERİLERİ ---
+        // --- OYUN VERİLERİ ---
         let isTwoPlayer = false;
         let score = { blue: 0, red: 0 };
         
@@ -257,26 +216,26 @@
         };
 
         function resetBall() {
-            data.ball.pos.set(0, 6, 0);
+            data.ball.pos.set(0, 5, 0);
             data.ball.vel.set(0, 0, 0);
         }
         resetBall();
 
-        // --- KONTROLLER (INPUT) ---
+        // --- GİRİŞ DİNLEYİCİLERİ ---
         const keys = {};
         window.addEventListener('keydown', (e) => {
             keys[e.code] = true;
             if (e.code === 'Digit2') {
                 isTwoPlayer = true;
                 player2.root.visible = true;
-                document.getElementById('mode-text').innerText = "2 Oyuncu Modu Aktif (Ateş ve Su Stili)";
+                document.getElementById('mode-text').innerText = "2 Oyuncu Modu Aktif";
             }
             if (e.code === 'KeyG') data.p1.dancing = !data.p1.dancing;
             if (e.code === 'KeyL' && isTwoPlayer) data.p2.dancing = !data.p2.dancing;
         });
         window.addEventListener('keyup', (e) => { keys[e.code] = false; });
 
-        // Roblox Tarzı Kamera Çevirme (Sol Tık)
+        // Kamera Döndürme
         let isMouseDown = false;
         let mouseX = 0, mouseY = 0;
         let cameraAngleX = 0;
@@ -286,24 +245,23 @@
         window.addEventListener('mousedown', (e) => { if (e.button === 0) { isMouseDown = true; mouseX = e.clientX; mouseY = e.clientY; } });
         window.addEventListener('mousemove', (e) => {
             if (!isMouseDown) return;
-            cameraAngleX -= (e.clientX - mouseX) * 0.005;
-            cameraAngleY = Math.max(0.05, Math.min(Math.PI/2 - 0.05, cameraAngleY + (e.clientY - mouseY) * 0.005));
+            cameraAngleX -= (e.clientX - mouseX) * 0.007;
+            cameraAngleY = Math.max(0.1, Math.min(Math.PI/2 - 0.1, cameraAngleY + (e.clientY - mouseY) * 0.007));
             mouseX = e.clientX; mouseY = e.clientY;
         });
         window.addEventListener('mouseup', (e) => { if (e.button === 0) isMouseDown = false; });
-        window.addEventListener('contextmenu', e => e.preventDefault()); // Sağ tık menüsünü kapa
+        window.addEventListener('contextmenu', e => e.preventDefault());
 
-        // Şut Tetikleyicileri
         window.addEventListener('mousedown', (e) => {
-            if (e.button === 2) kickBall(data.p1); // Sağ tık P1 Şut
-            if (e.button === 0 && isTwoPlayer && !isMouseDown) kickBall(data.p2); // Sol tık P2 Şut
+            if (e.button === 2) kickBall(data.p1);
+            if (e.button === 0 && isTwoPlayer && !isMouseDown) kickBall(data.p2);
         });
 
         function kickBall(playerData) {
             if (playerData.pos.distanceTo(data.ball.pos) < 3.5) {
                 let dir = new THREE.Vector3().subVectors(data.ball.pos, playerData.pos).normalize();
-                dir.y = 0.4; // Havalandırma havadan pas/şut efekti
-                data.ball.vel.copy(dir.multiplyScalar(16));
+                dir.y = 0.35;
+                data.ball.vel.copy(dir.multiplyScalar(15));
             }
         }
 
@@ -314,7 +272,7 @@
             requestAnimationFrame(animate);
             const dt = Math.min(clock.getDelta(), 0.1);
 
-            // --- P1 (WASD) HAREKET VE KOL/BACAK SALLANMASI ---
+            // P1 Hareket Kontrolü
             let p1Moving = false;
             if (!data.p1.dancing) {
                 let mx = 0, mz = 0;
@@ -328,12 +286,12 @@
                     let dir = new THREE.Vector3(mx, 0, mz).normalize();
                     data.p1.pos.add(dir.multiplyScalar(9 * dt));
                     player1.root.rotation.y = Math.atan2(-mx, -mz);
-                    data.p1.walkCycle += dt * 12;
+                    data.p1.walkCycle += dt * 10; // Animasyon hızı
                 }
-                if (keys['Space'] && data.p1.isGrounded) { data.p1.vel.y = 11; data.p1.isGrounded = false; }
+                if (keys['Space'] && data.p1.isGrounded) { data.p1.vel.y = 10; data.p1.isGrounded = false; }
             }
 
-            // --- P2 (OK TUŞLARI) HAREKET ---
+            // P2 Hareket Kontrolü
             let p2Moving = false;
             if (isTwoPlayer && !data.p2.dancing) {
                 let mx = 0, mz = 0;
@@ -347,104 +305,98 @@
                     let dir = new THREE.Vector3(mx, 0, mz).normalize();
                     data.p2.pos.add(dir.multiplyScalar(9 * dt));
                     player2.root.rotation.y = Math.atan2(-mx, -mz);
-                    data.p2.walkCycle += dt * 12;
+                    data.p2.walkCycle += dt * 10;
                 }
-                if (keys['Enter'] && data.p2.isGrounded) { data.p2.vel.y = 11; data.p2.isGrounded = false; }
-                if (keys['ControlLeft']) kickBall(data.p2); // Klavyeden şut alternatifi
+                if (keys['Enter'] && data.p2.isGrounded) { data.p2.vel.y = 10; data.p2.isGrounded = false; }
+                if (keys['ControlLeft']) kickBall(data.p2);
             }
 
-            // --- EKSTREMİTE ANİMASYON MANTIĞI ---
-            function animateLimbs(pData, isMoving) {
+            // --- ANIMASYONLARI UYGULAMA ---
+            function applyLimbAnimations(pData, isMoving) {
                 if (pData.dancing) {
-                    // Dans Animasyonu: Kollar yukarı, bacaklar yaylanıyor
-                    pData.walkCycle += dt * 15;
-                    pData.obj.root.position.y = Math.abs(Math.sin(pData.walkCycle)) * 1.5;
-                    pData.obj.leftArm.rotation.x = -Math.PI + Math.sin(pData.walkCycle);
-                    pData.obj.rightArm.rotation.x = -Math.PI - Math.sin(pData.walkCycle);
-                    pData.obj.leftLeg.rotation.x = Math.sin(pData.walkCycle) * 0.3;
-                    pData.obj.rightLeg.rotation.x = -Math.sin(pData.walkCycle) * 0.3;
+                    let danceTime = clock.getElapsedTime() * 8;
+                    pData.pos.y = Math.abs(Math.sin(danceTime)) * 1.2;
+                    pData.obj.leftArm.rotation.x = -Math.PI/1.2 + Math.sin(danceTime) * 0.5;
+                    pData.obj.rightArm.rotation.x = -Math.PI/1.2 - Math.sin(danceTime) * 0.5;
+                    pData.obj.leftLeg.rotation.x = Math.sin(danceTime) * 0.2;
+                    pData.obj.rightLeg.rotation.x = -Math.sin(danceTime) * 0.2;
                 } else if (isMoving) {
-                    // Yürüme Animasyonu: Kollar ve bacaklar çapraz sallanır
-                    pData.obj.leftArm.rotation.x = Math.sin(pData.p1.walkCycle) * 0.8;
-                    pData.obj.rightArm.rotation.x = -Math.sin(pData.p1.walkCycle) * 0.8;
-                    pData.obj.leftLeg.rotation.x = -Math.sin(pData.p1.walkCycle) * 0.8;
-                    pData.obj.rightLeg.rotation.x = Math.sin(pData.p1.walkCycle) * 0.8;
+                    // Yürüme sallantısı (Düzeltildi)
+                    let angle = Math.sin(pData.walkCycle);
+                    pData.obj.leftArm.rotation.x = angle * 0.7;
+                    pData.obj.rightArm.rotation.x = -angle * 0.7;
+                    pData.obj.leftLeg.rotation.x = -angle * 0.6;
+                    pData.obj.rightLeg.rotation.x = angle * 0.6;
+                    if(pData.isGrounded) pData.pos.y = Math.abs(Math.sin(pData.walkCycle * 2)) * 0.15; // Yürürken hafif yaylanma
                 } else {
-                    // Sabit Durma Durumu Sıfırlama
+                    // Dururken sıfırla
                     pData.obj.leftArm.rotation.x = 0; pData.obj.rightArm.rotation.x = 0;
                     pData.obj.leftLeg.rotation.x = 0; pData.obj.rightLeg.rotation.x = 0;
                 }
             }
-            animateLimbs(data.p1, p1Moving);
-            animateLimbs(data.p2, p2Moving);
+            applyLimbAnimations(data.p1, p1Moving);
+            applyLimbAnimations(data.p2, p2Moving);
 
-            // --- İKİ KALECİ BOT YAPAY ZEKASI VE ANİMASYONU ---
-            function runKeeperAI(botData) {
-                let targetX = data.ball.pos.x;
-                targetX = Math.max(-7, Math.min(7, targetX)); // Kaleden ayrılma sınırı
-                
-                // Kaleci topun gelişine göre yana doğru hareket eder
-                let diffX = targetX - botData.pos.x;
-                if (Math.abs(diffX) > 0.1) {
-                    botData.pos.x += Math.sign(diffX) * 6 * dt;
-                    botData.obj.leftLeg.rotation.x = Math.sin(clock.getElapsedTime() * 15) * 0.5;
-                    botData.obj.rightLeg.rotation.x = -Math.sin(clock.getElapsedTime() * 15) * 0.5;
+            // Kaleci Botları Yapay Zekası
+            function runKeeper(botData) {
+                let targetX = Math.max(-7, Math.min(7, data.ball.pos.x));
+                let diff = targetX - botData.pos.x;
+                if (Math.abs(diff) > 0.1) {
+                    botData.pos.x += Math.sign(diff) * 5 * dt;
+                    let speed = clock.getElapsedTime() * 12;
+                    botData.obj.leftLeg.rotation.x = Math.sin(speed) * 0.5;
+                    botData.obj.rightLeg.rotation.x = -Math.sin(speed) * 0.5;
+                } else {
+                    botData.obj.leftLeg.rotation.x = 0; botData.obj.rightLeg.rotation.x = 0;
                 }
 
-                // Top kaleciye yaklaşınca topu ters yöne güçlüce fırlatır (kurtarış)
                 if (botData.pos.distanceTo(data.ball.pos) < 3.2) {
-                    data.ball.vel.set((Math.random() - 0.5) * 6, 6, botData.side * -17);
+                    data.ball.vel.set((Math.random() - 0.5) * 5, 5, botData.side * -16);
                 }
             }
-            runKeeperAI(data.botNorth);
-            runKeeperAI(data.botSouth);
+            runKeeper(data.botNorth);
+            runKeeper(data.botSouth);
 
-            // --- FİZİK VE YERÇEKİMİ SİMÜLASYONU ---
-            // Oyuncu 1 Yerçekimi
+            // Fizik & Yerçekimi (Oyuncular)
             if (!data.p1.isGrounded) {
-                data.p1.vel.y -= 28 * dt; data.p1.pos.y += data.p1.vel.y * dt;
+                data.p1.vel.y -= 26 * dt; data.p1.pos.y += data.p1.vel.y * dt;
                 if (data.p1.pos.y <= 0) { data.p1.pos.y = 0; data.p1.isGrounded = true; }
             }
-            // Oyuncu 2 Yerçekimi
             if (isTwoPlayer && !data.p2.isGrounded) {
-                data.p2.vel.y -= 28 * dt; data.p2.pos.y += data.p2.vel.y * dt;
+                data.p2.vel.y -= 26 * dt; data.p2.pos.y += data.p2.vel.y * dt;
                 if (data.p2.pos.y <= 0) { data.p2.pos.y = 0; data.p2.isGrounded = true; }
             }
 
-            // Top Fiziği (Yerçekimi + Sürtünme + Dönüş Etkisi)
-            data.ball.vel.y -= 16 * dt;
+            // Top Fiziği
+            data.ball.vel.y -= 15 * dt;
             data.ball.pos.addScaledVector(data.ball.vel, dt);
 
-            // Top Saha Zemini Teması ve Sekmesi
             if (data.ball.pos.y < 0.7) {
                 data.ball.pos.y = 0.7;
-                data.ball.vel.y = -data.ball.vel.y * 0.65; // Sekme şiddeti
-                data.ball.vel.x *= 0.97; data.ball.vel.z *= 0.97; // Zemin sürtünmesi
+                data.ball.vel.y = -data.ball.vel.y * 0.6;
+                data.ball.vel.x *= 0.96; data.ball.vel.z *= 0.96;
             }
 
-            // Top Dönüş Efekti (Yuvarlanma Görseli)
-            ball.rotation.x += data.ball.vel.z * dt * 0.3;
-            ball.rotation.z -= data.ball.vel.x * dt * 0.3;
+            ball.rotation.x += data.ball.vel.z * dt * 0.2;
+            ball.rotation.z -= data.ball.vel.x * dt * 0.2;
 
-            // --- GOL VE SINIR KONTROLLERİ ---
+            // Gol Sınırları Kontrolü
             if (Math.abs(data.ball.pos.x) > 25 || Math.abs(data.ball.pos.z) > 35) {
-                // Kuzey Kalesi Gol Kontrolü
                 if (data.ball.pos.z < -35 && Math.abs(data.ball.pos.x) < 8 && data.ball.pos.y < 7) {
                     score.blue++; updateUI(); resetBall();
-                } // Güney Kalesi Gol Kontrolü
-                else if (data.ball.pos.z > 35 && Math.abs(data.ball.pos.x) < 8 && data.ball.pos.y < 7) {
+                } else if (data.ball.pos.z > 35 && Math.abs(data.ball.pos.x) < 8 && data.ball.pos.y < 7) {
                     score.red++; updateUI(); resetBall();
                 } else {
-                    resetBall(); // Taç / Avut durumu
+                    resetBall();
                 }
             }
 
-            // --- ROBLOX TARZI ARKA KAMERA TAKİBİ ---
+            // Arka Kamera Takibi
             let target = data.p1.pos;
             camera.position.x = target.x + cameraRadius * Math.sin(cameraAngleX) * Math.cos(cameraAngleY);
             camera.position.z = target.z + cameraRadius * Math.cos(cameraAngleX) * Math.cos(cameraAngleY);
             camera.position.y = target.y + cameraRadius * Math.sin(cameraAngleY) + 2.5;
-            camera.lookAt(target.x, target.y + 2, target.z);
+            camera.lookAt(target.x, target.y + 1.8, target.z);
 
             renderer.render(scene, camera);
         }
@@ -459,7 +411,6 @@
             renderer.setSize(window.innerWidth, window.innerHeight);
         });
 
-        // Başlat
         animate();
     </script>
 </body>
