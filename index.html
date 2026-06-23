@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Minecraft Mouse Futbol Pro - Final v5 (Gölgeli & Fare Kontrollü)</title>
+    <title>Minecraft Roblox-Style Soccer</title>
     <style>
         body { margin: 0; overflow: hidden; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; user-select: none;}
         #canvas-container { width: 100vw; height: 100vh; }
@@ -14,7 +14,7 @@
             top: 20px;
             left: 50%;
             transform: translateX(-50%);
-            background: rgba(10, 10, 10, 0.8); /* Daha karanlık ve net */
+            background: rgba(10, 10, 10, 0.8);
             border: 4px solid #fff;
             border-radius: 10px;
             padding: 10px 40px;
@@ -47,6 +47,7 @@
 </head>
 <body>
 
+    <!-- Scoreboard UI -->
     <div id="scoreboard">
         <div id="score-title">Skor Panosu</div>
         <div id="score-numbers"><span id="team-blue">0</span> - <span id="team-red">0</span></div>
@@ -54,10 +55,11 @@
     </div>
 
     <div id="controls-info">
-        <b>[KONTROLLER]</b><br>
-        <b>P1 (Mavi):</b> Fare İmleci (Yön) + Sol Tık Tarak Tut (Koş) + Sağ Tık (Şut) + Boşluk (Zıpla) + G (Dans)<br>
-        <b>P2 (Kırmızı):</b> Yön Tuşları (Hareket) + Enter (Zıpla) + Sol Tık VEYA Ctrl (Şut) + L (Dans)<br>
-        <b>Kamera:</b> Fareyi çevir (Karakter yönüne göre).
+        <b>[KONTROLLER - Roblox Stili]</b><br>
+        <b>Hareket (P1):</b> DASW (Kameraya Göre) + Boşluk (Zıpla)<br>
+        <b>Kamera:</b> Sol Tıka basılı tutarak fareyi çevir.<br>
+        <b>Etkileşim (P1):</b> Sağ Tık (Şut) + G (Dans)<br>
+        <b>P2 (Kırmızı):</b> Yön Tuşları + Enter (Zıpla) + Sol Tık VEYA Ctrl (Şut) + L (Dans)
     </div>
     <div id="canvas-container"></div>
 
@@ -98,12 +100,7 @@
         sunLight.shadow.camera.bottom = -d;
         scene.add(sunLight);
 
-        // Raycaster for Mouse Ground Point
-        const raycaster = new THREE.Raycaster();
-        const mouse = new THREE.Vector2();
-        let isP1Running = false;
-
-        // --- TEKS-TÜR PACK YAPICI (Hiçbir şey silinmedi) ---
+        // --- TEKS-TÜR PACK YAPICI ---
         function createCharacterTexture(mainColorHex, isFace) {
             const canvas = document.createElement('canvas'); canvas.width = 64; canvas.height = 64;
             const ctx = canvas.getContext('2d'); ctx.fillStyle = mainColorHex; ctx.fillRect(0, 0, 64, 64);
@@ -152,7 +149,7 @@
         }
         createGoal(-35); createGoal(35);
 
-        // --- KARAKTER MODELLEME (Animasyonlar korundu) ---
+        // --- KARAKTER MODELLEME ---
         function buildMinecraftCharacter(shirtMat) {
             const charGroup = new THREE.Group();
             const body = new THREE.Mesh(new THREE.BoxGeometry(1.6, 2.4, 0.8), shirtMat); body.position.y = 2.2; body.castShadow = true; body.receiveShadow = true; charGroup.add(body);
@@ -165,7 +162,6 @@
             return { root: charGroup, leftArm: leftArmPivot, rightArm: rightArmPivot, leftLeg: leftLegPivot, rightLeg: rightLegPivot };
         }
 
-        // Oyuncular ve Botlar
         const player1 = buildMinecraftCharacter(p1ShirtMat); player1.root.position.set(-5, 0, 20);
         const player2 = buildMinecraftCharacter(p2ShirtMat); player2.root.position.set(5, 0, 20); player2.root.visible = false;
         const botKeeperNorth = buildMinecraftCharacter(p2ShirtMat); botKeeperNorth.root.position.set(0, 0, -33);
@@ -177,7 +173,7 @@
         let isTwoPlayer = false;
         let score = { blue: 0, red: 0 };
         const data = {
-            p1: { obj: player1, pos: player1.root.position, vel: new THREE.Vector3(), isGrounded: true, dancing: false, walkCycle: 0, targetPoint: null },
+            p1: { obj: player1, pos: player1.root.position, vel: new THREE.Vector3(), isGrounded: true, dancing: false, walkCycle: 0 },
             p2: { obj: player2, pos: player2.root.position, vel: new THREE.Vector3(), isGrounded: true, dancing: false, walkCycle: 0 },
             botNorth: { obj: botKeeperNorth, pos: botKeeperNorth.root.position, side: -1 },
             botSouth: { obj: botKeeperSouth, pos: botKeeperSouth.root.position, side: 1 },
@@ -187,95 +183,78 @@
         function resetBall() { data.ball.pos.set(0, 6, 0); data.ball.vel.set(0, 0, 0); }
         resetBall();
 
-        // --- KONTROLLER (MOUSE HAREKET GÜNCELLEMESİ) ---
+        // --- KONTROLLER ---
         const keys = {};
         window.addEventListener('keydown', (e) => {
             keys[e.code] = true;
             if (e.code === 'Digit2') { isTwoPlayer = true; player2.root.visible = true; document.getElementById('mode-text').innerText = "2 Oyuncu Modu Aktif"; }
             if (e.code === 'KeyG') data.p1.dancing = !data.p1.dancing;
             if (e.code === 'KeyL' && isTwoPlayer) data.p2.dancing = !data.p2.dancing;
-            if (e.code === 'Space' && data.p1.isGrounded && !data.p1.dancing) { data.p1.vel.y = 10; data.p1.isGrounded = false; }
+            if (e.code === 'Space' && data.p1.isGrounded && !data.p1.dancing) { data.p1.vel.y = 11; data.p1.isGrounded = false; }
         });
         window.addEventListener('keyup', (e) => { keys[e.code] = false; });
 
-        // Kamera Kontrolü (Sadece Karakter Yönüne Göre)
+        // Roblox Stili Kamera Kontrolü (Sol Tık)
+        let isMouseDown = false;
+        let mouseX = 0, mouseY = 0;
+        let cameraAngleX = 0; // Yatay açı
+        let cameraAngleY = 0.5; // Dikey açı
         const cameraRadius = 18;
 
-        // Mouse Hareket Takibi (P1 Yönü ve Koşması)
+        window.addEventListener('mousedown', (e) => { if (e.button === 0) { isMouseDown = true; mouseX = e.clientX; mouseY = e.clientY; } });
         window.addEventListener('mousemove', (e) => {
-            mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
-            mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+            if (!isMouseDown) return;
+            cameraAngleX -= (e.clientX - mouseX) * 0.007; // Hassasiyet
+            cameraAngleY = Math.max(0.1, Math.min(Math.PI/2 - 0.1, cameraAngleY + (e.clientY - mouseY) * 0.007));
+            mouseX = e.clientX; mouseY = e.clientY;
         });
+        window.addEventListener('mouseup', (e) => { if (e.button === 0) isMouseDown = false; });
+        window.addEventListener('contextmenu', e => e.preventDefault()); // Sağ tık menüsünü kapa
 
-        // P1 Sol Tık Tarak Tut (Koş) ve Yön
+        // Şut (P1: Sağ Tık, P2: Sol Tık/Ctrl)
         window.addEventListener('mousedown', (e) => {
-            if (e.button === 0 && !isP1Running && !data.p1.dancing) {
-                // Raycaster to find mouse point on field
-                raycaster.setFromCamera(mouse, camera);
-                const intersects = raycaster.intersectObject(field);
-                if (intersects.length > 0) {
-                    isP1Running = true;
-                    data.p1.targetPoint = intersects[0].point;
-                }
-            }
-            if (e.button === 2) kickBall(data.p1); // Sağ tık şut
+            if (e.button === 2) kickBall(data.p1);
+            if (e.button === 0 && isTwoPlayer && !isMouseDown) kickBall(data.p2);
         });
-
-        window.addEventListener('mouseup', (e) => {
-            if (e.button === 0) {
-                isP1Running = false;
-                data.p1.targetPoint = null;
-            }
-        });
-
-        window.addEventListener('contextmenu', e => e.preventDefault());
 
         function kickBall(playerData) {
             if (playerData.pos.distanceTo(data.ball.pos) < 3.5) {
                 let dir = new THREE.Vector3().subVectors(data.ball.pos, playerData.pos).normalize();
-                dir.y = 0.35; data.ball.vel.copy(dir.multiplyScalar(16));
+                dir.y = 0.4; data.ball.vel.copy(dir.multiplyScalar(16));
             }
         }
 
-        // --- OYUN DÖNGÜSÜ (GÜNCELLENDİ) ---
+        // --- OYUN DÖNGÜSÜ ---
         const clock = new THREE.Clock();
 
         function animate() {
             requestAnimationFrame(animate);
             const dt = Math.min(clock.getDelta(), 0.1);
 
-            // --- P1 (FAHRE) HAREKET (WASD KALDIRILDI) ---
+            // --- P1 (WASD - ROBLOX STİLİ) ---
             let p1Moving = false;
             if (!data.p1.dancing) {
-                raycaster.setFromCamera(mouse, camera);
-                const intersects = raycaster.intersectObject(field);
+                // Kameraya göre hareket vektörleri
+                const forward = new THREE.Vector3(0, 0, -1).applyAxisAngle(new THREE.Vector3(0, 1, 0), cameraAngleX);
+                const right = new THREE.Vector3(1, 0, 0).applyAxisAngle(new THREE.Vector3(0, 1, 0), cameraAngleX);
                 
-                if (intersects.length > 0) {
-                    // Fare her zaman karakterin yüzünü çevirir
-                    const targetX = intersects[0].point.x;
-                    const targetZ = intersects[0].point.z;
-                    
-                    // Sadece karakter duruyorsa veya dans etmiyorsa fareye doğru bakar
-                    player1.root.lookAt(targetX, player1.root.position.y, targetZ);
-                    
-                    if (isP1Running) {
-                        p1Moving = true;
-                        // Karakter fare yönüne doğru koşar
-                        let dir = new THREE.Vector3().subVectors(intersects[0].point, data.p1.pos).normalize();
-                        dir.y = 0; // Saha düzleminde hareket
-                        
-                        // Saha sınırları kontrolü
-                        let newPos = data.p1.pos.clone().addScaledVector(dir, 9 * dt);
-                        if (Math.abs(newPos.x) < 25 && Math.abs(newPos.z) < 35) {
-                            data.p1.pos.copy(newPos);
-                        }
-                        
-                        data.p1.walkCycle += dt * 10;
-                    }
+                let moveDir = new THREE.Vector3();
+                if (keys['KeyW']) moveDir.add(forward);
+                if (keys['KeyS']) moveDir.sub(forward);
+                if (keys['KeyA']) moveDir.sub(right);
+                if (keys['KeyD']) moveDir.add(right);
+
+                if (moveDir.lengthSq() > 0) {
+                    p1Moving = true;
+                    moveDir.normalize();
+                    data.p1.pos.addScaledVector(moveDir, 9 * dt);
+                    // Karakter hareket yönüne bakar
+                    player1.root.rotation.y = Math.atan2(moveDir.x, moveDir.z);
+                    data.p1.walkCycle += dt * 10;
                 }
             }
 
-            // --- P2 (OK TUŞLARI - Değişmedi) ---
+            // --- P2 (OK TUŞLARI - Klasik) ---
             let p2Moving = false;
             if (isTwoPlayer && !data.p2.dancing) {
                 let mx = 0, mz = 0;
@@ -283,15 +262,15 @@
                 if (mx !== 0 || mz !== 0) {
                     p2Moving = true;
                     let dir = new THREE.Vector3(mx, 0, mz).normalize();
-                    data.p2.pos.add(dir.multiplyScalar(9 * dt));
-                    player2.root.rotation.y = Math.atan2(-mx, -mz);
+                    data.p2.pos.addScaledVector(dir, 9 * dt);
+                    player2.root.rotation.y = Math.atan2(dir.x, dir.z);
                     data.p2.walkCycle += dt * 10;
                 }
-                if (keys['Enter'] && data.p2.isGrounded) { data.p2.vel.y = 10; data.p2.isGrounded = false; }
+                if (keys['Enter'] && data.p2.isGrounded) { data.p2.vel.y = 11; data.p2.isGrounded = false; }
                 if (keys['ControlLeft']) kickBall(data.p2);
             }
 
-            // --- EKSTREMİTE ANİMASYONLARI (Değişmedi) ---
+            // --- ANIMASYONLAR VE BOTLAR (Değişmedi) ---
             function applyLimbAnimations(pData, isMoving) {
                 if (pData.dancing) {
                     let danceTime = clock.getElapsedTime() * 8; pData.pos.y = Math.abs(Math.sin(danceTime)) * 1.5; pData.obj.leftArm.rotation.x = -Math.PI/1.2 + Math.sin(danceTime); pData.obj.rightArm.rotation.x = -Math.PI/1.2 - Math.sin(danceTime); pData.obj.leftLeg.rotation.x = Math.sin(danceTime) * 0.2; pData.obj.rightLeg.rotation.x = -Math.sin(danceTime) * 0.2; pData.obj.root.rotation.y += dt * 5;
@@ -304,7 +283,6 @@
             }
             applyLimbAnimations(data.p1, p1Moving); applyLimbAnimations(data.p2, p2Moving);
 
-            // Botlar ve Top Fiziği (Değişmedi)
             function runKeeper(botData) {
                 let targetX = Math.max(-7, Math.min(7, data.ball.pos.x)); let diff = targetX - botData.pos.x;
                 if (Math.abs(diff) > 0.1) { botData.pos.x += Math.sign(diff) * 6 * dt; botData.obj.leftLeg.rotation.x = Math.sin(clock.getElapsedTime() * 12) * 0.5; botData.obj.rightLeg.rotation.x = -Math.sin(clock.getElapsedTime() * 12) * 0.5; } else { botData.obj.leftLeg.rotation.x = 0; botData.obj.rightLeg.rotation.x = 0; }
@@ -313,8 +291,8 @@
             runKeeper(data.botNorth); runKeeper(data.botSouth);
 
             // Oyuncu Yerçekimi
-            if (!data.p1.isGrounded) { data.p1.vel.y -= 26 * dt; data.p1.pos.y += data.p1.vel.y * dt; if (data.p1.pos.y <= 0) { data.p1.pos.y = 0; data.p1.isGrounded = true; } }
-            if (isTwoPlayer && !data.p2.isGrounded) { data.p2.vel.y -= 26 * dt; data.p2.pos.y += data.p2.vel.y * dt; if (data.p2.pos.y <= 0) { data.p2.pos.y = 0; data.p2.isGrounded = true; } }
+            if (!data.p1.isGrounded) { data.p1.vel.y -= 28 * dt; data.p1.pos.y += data.p1.vel.y * dt; if (data.p1.pos.y <= 0) { data.p1.pos.y = 0; data.p1.isGrounded = true; } }
+            if (isTwoPlayer && !data.p2.isGrounded) { data.p2.vel.y -= 28 * dt; data.p2.pos.y += data.p2.vel.y * dt; if (data.p2.pos.y <= 0) { data.p2.pos.y = 0; data.p2.isGrounded = true; } }
 
             // Top Yerçekimi, Sekme, Dönüş
             data.ball.vel.y -= 15 * dt; data.ball.pos.addScaledVector(data.ball.vel, dt);
@@ -326,18 +304,15 @@
                 if (data.ball.pos.z < -35 && Math.abs(data.ball.pos.x) < 8 && data.ball.pos.y < 7) { score.blue++; updateUI(); resetBall(); } else if (data.ball.pos.z > 35 && Math.abs(data.ball.pos.x) < 8 && data.ball.pos.y < 7) { score.red++; updateUI(); resetBall(); } else { resetBall(); }
             }
 
-            // Arka Kamera Takibi (P1 Yönüne Göre)
-            // Kamera artık karakterin bakış açısını takip eder (farenin işaret ettiği yer)
-            const playerPos = data.p1.pos;
-            const playerRotY = player1.root.rotation.y;
-            
-            // Kamera karakterin tam arkasına, karakterin dönüş açısına göre yerleşir
-            camera.position.x = playerPos.x - cameraRadius * Math.sin(playerRotY);
-            camera.position.z = playerPos.z - cameraRadius * Math.cos(playerRotY);
-            camera.position.y = playerPos.y + 7.5; // Biraz daha yukarıdan bakış
+            // --- ROBLOX TARZI KAMERA TAKİBİ (WASD-UYUMLU) ---
+            const target = data.p1.pos;
+            // Kamera küresel koordinatlarla karakterin etrafında döner
+            camera.position.x = target.x + cameraRadius * Math.sin(cameraAngleX) * Math.cos(cameraAngleY);
+            camera.position.z = target.z + cameraRadius * Math.cos(cameraAngleX) * Math.cos(cameraAngleY);
+            camera.position.y = target.y + cameraRadius * Math.sin(cameraAngleY) + 2.5; // Biraz yukarıdan bakış
             
             // Karakterin kafasına odaklan
-            camera.lookAt(playerPos.x, playerPos.y + 2, playerPos.z);
+            camera.lookAt(target.x, target.y + 1.8, target.z);
 
             renderer.render(scene, camera);
         }
