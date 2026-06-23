@@ -1,10 +1,254 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>kAPANDI</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Retro Futbol Oyunu</title>
+    <style>
+        body {
+            background-color: #222;
+            color: white;
+            font-family: 'Courier New', Courier, monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+        h1 {
+            margin-bottom: 10px;
+            text-shadow: 2px 2px #000;
+        }
+        #score-board {
+            font-size: 24px;
+            margin-bottom: 10px;
+            font-weight: bold;
+            background: #333;
+            padding: 5px 20px;
+            border-radius: 5px;
+            border: 2px solid #fff;
+        }
+        canvas {
+            background-color: #387344;
+            border: 4px solid #fff;
+            box-shadow: 0px 0px 20px rgba(0,0,0,0.5);
+        }
+        .controls {
+            margin-top: 15px;
+            font-size: 14px;
+            color: #aaa;
+        }
+    </style>
+</head>
+<body>
 
+    <h1>RETRO FUTBOL</h1>
+    <div id="score-board">OYUNCU: <span id="player-score">0</span> | RAKİP: <span id="ai-score">0</span></div>
+    <canvas id="gameCanvas" width="800" height="500"></canvas>
+    <div class="controls">Hareket: <b>Yön Tuşları (← ↑ ↓ →)</b> | Topa çarparak sür veya şut çek!</div>
 
-    <div id="ui">
-        <h3>oyun kodlar silindi oyun kapandı geliştirmicem</h3>
+    <script>
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+
+        const pScoreEl = document.getElementById("player-score");
+        const aiScoreEl = document.getElementById("ai-score");
+
+        let playerScore = 0;
+        let aiScore = 0;
+
+        // Saha Çizgileri ve Kale Ölçüleri
+        const goalHeight = 120;
+        const goalY = (canvas.height - goalHeight) / 2;
+
+        // Oyuncu Nesnesi
+        const player = {
+            x: 200,
+            y: canvas.height / 2,
+            radius: 15,
+            speed: 4,
+            color: "#00a8ff"
+        };
+
+        // Yapay Zeka (Rakip) Nesnesi
+        const ai = {
+            x: 600,
+            y: canvas.height / 2,
+            radius: 15,
+            speed: 3,
+            color: "#e84118"
+        };
+
+        // Top Nesnesi
+        const ball = {
+            x: canvas.width / 2,
+            y: canvas.height / 2,
+            radius: 10,
+            vx: 0,
+            vy: 0,
+            friction: 0.98,
+            color: "#ffffff"
+        };
+
+        // Klavye Kontrolleri
+        const keys = {};
+        window.addEventListener("keydown", e => keys[e.code] = true);
+        window.addEventListener("keyup", e => keys[e.code] = false);
+
+        // İki nesne arasındaki mesafeyi hesaplama
+        function getDistance(x1, y1, x2, y2) {
+            return Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2);
+        }
+
+        // Topu ortaya dikme (Gol sonrası veya başlangıç)
+        function resetPositions() {
+            ball.x = canvas.width / 2;
+            ball.y = canvas.height / 2;
+            ball.vx = 0;
+            ball.vy = 0;
+
+            player.x = 200;
+            player.y = canvas.height / 2;
+
+            ai.x = 600;
+            ai.y = canvas.height / 2;
+        }
+
+        // Çarpışma ve Top Fiziği Fonksiyonu
+        function handleBallCollision(entity) {
+            let dist = getDistance(entity.x, entity.y, ball.x, ball.y);
+            let minDist = entity.radius + ball.radius;
+
+            if (dist < minDist) {
+                // Çarpışma açısını bulalım
+                let angle = Math.atan2(ball.y - entity.y, ball.x - entity.x);
+                
+                // Topu oyuncunun dışına itelim (iç içe geçmesinler)
+                ball.x = entity.x + Math.cos(angle) * minDist;
+                ball.y = entity.y + Math.sin(angle) * minDist;
+
+                // Çarpma hızı kazandırıyoruz (Şut etkisi)
+                let speedFactor = 6; 
+                ball.vx = Math.cos(angle) * speedFactor;
+                ball.vy = Math.sin(angle) * speedFactor;
+            }
+        }
+
+        // Güncelleme Mantığı
+        function update() {
+            // Oyuncu Hareketi
+            if (keys["ArrowUp"] && player.y - player.radius > 0) player.y -= player.speed;
+            if (keys["ArrowDown"] && player.y + player.radius < canvas.height) player.y += player.speed;
+            if (keys["ArrowLeft"] && player.x - player.radius > 0) player.x -= player.speed;
+            if (keys["ArrowRight"] && player.x + player.radius < canvas.width) player.x += player.speed;
+
+            // Yapay Zeka Mantığı (Topu takip eder)
+            if (ai.y < ball.y && ai.y + ai.radius < canvas.height) ai.y += ai.speed;
+            if (ai.y > ball.y && ai.y - ai.radius > 0) ai.y -= ai.speed;
+            if (ai.x < ball.x && ai.x + ai.radius < canvas.width) ai.x += ai.speed;
+            if (ai.x > ball.x && ai.x - ai.radius > canvas.width / 2) ai.x -= ai.speed; // Kendi yarı sahasını korur
+
+            // Top Hareketi ve Sürtünme (Yavaşlama)
+            ball.x += ball.vx;
+            ball.y += ball.vy;
+            ball.vx *= ball.friction;
+            ball.vy *= ball.friction;
+
+            // Çarpışmaları Kontrol Et
+            handleBallCollision(player);
+            handleBallCollision(ai);
+
+            // Topun Saha Duvarlarına Çarpması
+            if (ball.y - ball.radius < 0) { ball.y = ball.radius; ball.vy *= -1; }
+            if (ball.y + ball.radius > canvas.height) { ball.y = canvas.height - ball.radius; ball.vy *= -1; }
+            
+            // Yan duvarlar (Kaleler hariç)
+            if (ball.x - ball.radius < 0) {
+                if (ball.y > goalY && ball.y < goalY + goalHeight) {
+                    // RAKİP GOL ATTI!
+                    aiScore++;
+                    aiScoreEl.innerText = aiScore;
+                    resetPositions();
+                } else {
+                    ball.x = ball.radius;
+                    ball.vx *= -1;
+                }
+            }
+            if (ball.x + ball.radius > canvas.width) {
+                if (ball.y > goalY && ball.y < goalY + goalHeight) {
+                    // OYUNCU GOL ATTI!
+                    playerScore++;
+                    pScoreEl.innerText = playerScore;
+                    resetPositions();
+                } else {
+                    ball.x = canvas.width - ball.radius;
+                    ball.vx *= -1;
+                }
+            }
+        }
+
+        // Çizim Mantığı
+        function draw() {
+            // Sahayı temizle
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Saha Çizgileri (Orta saha ve ceza sahası çizgileri)
+            ctx.strokeStyle = "rgba(255,255,255,0.4)";
+            ctx.lineWidth = 4;
+            
+            // Orta Çizgi
+            ctx.beginPath();
+            ctx.moveTo(canvas.width / 2, 0);
+            ctx.lineTo(canvas.width / 2, canvas.height);
+            ctx.stroke();
+
+            // Orta Yuvarlak
+            ctx.beginPath();
+            ctx.arc(canvas.width / 2, canvas.height / 2, 60, 0, Math.PI * 2);
+            ctx.stroke();
+
+            // Sol Kale Çizgisi
+            ctx.fillStyle = "#fff";
+            ctx.fillRect(0, goalY, 10, goalHeight);
+            
+            // Sağ Kale Çizgisi
+            ctx.fillRect(canvas.width - 10, goalY, 10, goalHeight);
+
+            // Oyuncuyu Çiz
+            ctx.fillStyle = player.color;
+            ctx.beginPath();
+            ctx.arc(player.x, player.y, player.radius, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = "#000";
+            ctx.stroke();
+
+            // Yapay Zekayı Çiz
+            ctx.fillStyle = ai.color;
+            ctx.beginPath();
+            ctx.arc(ai.x, ai.y, ai.radius, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+
+            // Topu Çiz
+            ctx.fillStyle = ball.color;
+            ctx.beginPath();
+            ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = "#000";
+            ctx.stroke();
+        }
+
+        // Ana Oyun Döngüsü (Game Loop)
+        function gameLoop() {
+            update();
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Oyunu Başlat
+        gameLoop();
+    </script>
+</body>
+</html>
